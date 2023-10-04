@@ -15,3 +15,6 @@ cargo_metadata = "0.18.0"
 chrono = "0.4.31"
 clap = { version = "4.4.6", features = ["derive"] }
 harness-macros = { path = "./macros" }
+
+[workspace]
+members = ["./macros", ".", "./example-crate"]

@@ -1,4 +1,4 @@
-use std::{fs::OpenOptions, process::Command};
+use std::{fs::OpenOptions, path::Path, process::Command};
 
 use cargo_metadata::{MetadataCommand, Package};
 use clap::Parser;
@@ -48,20 +48,20 @@ impl Harness {
             anyhow::bail!("No root package found");
         };
         for target in &pkg.targets {
-            if target.kind.contains(&"bench".to_owned()) {
+            if target.is_bench() {
                 self.benches.push(target.name.clone());
             }
         }
-        println!("Found benches: {:?}", self.benches);
         Ok(())
     }
 
-    fn run_one(&self, variant: &BuildVariant, bench: &str) -> anyhow::Result<()> {
-        let dir = std::env::current_dir()?
-            .join("target")
-            .join("harness")
-            .join("logs")
-            .join(&self.run_id);
+    fn run_one(
+        &self,
+        variant: &BuildVariant,
+        bench: &str,
+        target_dir: &Path,
+    ) -> anyhow::Result<()> {
+        let dir = target_dir.join("harness").join("logs").join(&self.run_id);
         std::fs::create_dir_all(&dir)?;
         let log_file = dir.join(format!("{}.{}.log", bench, variant.name));
         let outputs = OpenOptions::new()
@@ -99,7 +99,7 @@ impl Harness {
         }
     }
 
-    fn run(&mut self) -> anyhow::Result<()> {
+    fn run(&mut self, target_dir: &Path) -> anyhow::Result<()> {
         self.collect_benches()?;
         for bench in &self.benches {
             print!("{} ", bench);
@@ -109,7 +109,7 @@ impl Harness {
                     assert!(index < 26);
                     const KEYS: &str = "abcdefghijklmnopqrstuvwxyz";
                     let key = KEYS.chars().nth(index).unwrap();
-                    let result = self.run_one(variant, bench);
+                    let result = self.run_one(variant, bench, target_dir);
                     match result {
                         Ok(_) => {
                             print!("{}", key)
@@ -190,6 +190,7 @@ fn main() -> anyhow::Result<()> {
         .manifest_path("./Cargo.toml")
         .exec()
         .unwrap();
+    let target_dir = meta.target_directory.as_std_path();
     let Some(pkg) = meta.root_package() else {
         anyhow::bail!("No root package found");
     };
@@ -203,6 +204,6 @@ fn main() -> anyhow::Result<()> {
         args.iterations,
         args.invocations,
     );
-    harness.run()?;
+    harness.run(target_dir)?;
     Ok(())
 }
