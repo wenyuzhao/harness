@@ -137,6 +137,9 @@ pub struct HarnessCmdArgs {
     #[arg(long, default_value = "default")]
     /// Benchmarking profile
     pub profile: String,
+    #[arg(long, default_value = "false")]
+    /// Allow dirty working directories
+    pub allow_dirty: bool,
 }
 
 fn get_build_variants(pkg: &Package, profile: &str) -> anyhow::Result<Vec<BuildVariant>> {
@@ -179,21 +182,38 @@ fn get_build_variants(pkg: &Package, profile: &str) -> anyhow::Result<Vec<BuildV
     }
 }
 
+fn check_git_worktree(allow_dirty: bool) -> anyhow::Result<()> {
+    let out = std::process::Command::new("git")
+        .args(["status", "--short"])
+        .output()
+        .unwrap();
+    let out = String::from_utf8(out.stdout).unwrap();
+    if !out.trim().is_empty() {
+        if !allow_dirty {
+            anyhow::bail!("Git worktree is dirty.");
+        }
+        eprintln!("🚨 WARNING: Git worktree is dirty.");
+    }
+    Ok(())
+}
+
 fn main() -> anyhow::Result<()> {
-    let args: std::env::Args = std::env::args();
-    let mut args = args.collect::<Vec<_>>();
+    if std::env::var("RUST_LOG").is_err() {
+        std::env::set_var("RUST_LOG", "info")
+    }
+    let mut args = std::env::args().collect::<Vec<_>>();
     if args.len() > 1 && args[1] == "harness" {
         args = args[1..].to_vec();
     }
     let args = HarnessCmdArgs::parse_from(args);
-    let meta = MetadataCommand::new()
-        .manifest_path("./Cargo.toml")
-        .exec()
-        .unwrap();
+    let Ok(meta) = MetadataCommand::new().manifest_path("./Cargo.toml").exec() else {
+        anyhow::bail!("Failed to get metadata from ./Cargo.toml");
+    };
     let target_dir = meta.target_directory.as_std_path();
     let Some(pkg) = meta.root_package() else {
         anyhow::bail!("No root package found");
     };
+    check_git_worktree(args.allow_dirty)?;
     let variants = get_build_variants(pkg, &args.profile)?;
     let time = chrono::Local::now().format("%Y%m%d-%H%M%S").to_string();
     let run_id = format!("{}-{}", args.profile, time);

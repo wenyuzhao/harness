@@ -18,14 +18,6 @@ pub struct BenchArgs {
     pub overwrite_crate_name: Option<String>,
 }
 
-pub fn black_box<T>(dummy: T) -> T {
-    unsafe {
-        let ret = std::ptr::read_volatile(&dummy);
-        std::mem::forget(dummy);
-        ret
-    }
-}
-
 pub struct Bencher {
     name: String,
     prologue_fn: Option<Box<dyn FnMut()>>,
@@ -54,7 +46,7 @@ impl Bencher {
 
     pub fn iter<T, F: 'static + FnMut() -> T>(&mut self, mut f: F) {
         self.iter_fn = Some(Box::new(move || {
-            black_box(f());
+            f();
         }));
     }
 
