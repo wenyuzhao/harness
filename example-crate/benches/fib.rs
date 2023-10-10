@@ -1,6 +1,12 @@
 use std::hint::black_box;
 
-#[harness::entry]
-fn main(bencher: &mut harness::Bencher) {
-    bencher.iter(|| example_crate::fib(black_box(40)));
+#[harness::bench]
+#[derive(Default)]
+struct Fib;
+
+impl harness::Benchmark for Fib {
+    fn iter(&mut self) {
+        let v = black_box(40);
+        example_crate::fib(v);
+    }
 }

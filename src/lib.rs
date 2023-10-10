@@ -1,5 +1,9 @@
+mod benchmark;
+
 use clap::Parser;
-pub use harness_macros::entry;
+
+pub use benchmark::Benchmark;
+pub use harness_macros::bench;
 pub use std::hint::black_box;
 
 #[derive(Parser, Debug)]
@@ -19,42 +23,17 @@ pub struct BenchArgs {
     pub overwrite_crate_name: Option<String>,
 }
 
-pub struct Bencher {
+pub struct Bencher<B> {
     name: String,
-    prologue_fn: Option<Box<dyn FnMut()>>,
-    iter_fn: Option<Box<dyn FnMut()>>,
-    epilogue_fn: Option<Box<dyn FnMut()>>,
+    benchmark: B,
 }
 
-impl Bencher {
+impl<B: Benchmark> Bencher<B> {
     #[doc(hidden)]
-    pub fn new(fname: &'static str) -> Self {
+    pub fn new(fname: &'static str, benchmark: B) -> Self {
         let fname = std::path::PathBuf::from(fname);
         let name = fname.file_stem().unwrap().to_str().unwrap().to_owned();
-        Self {
-            name,
-            prologue_fn: None,
-            iter_fn: None,
-            epilogue_fn: None,
-        }
-    }
-
-    pub fn prologue<T, F: 'static + FnMut() -> T>(&mut self, mut f: F) {
-        self.prologue_fn = Some(Box::new(move || {
-            f();
-        }));
-    }
-
-    pub fn iter<T, F: 'static + FnMut() -> T>(&mut self, mut f: F) {
-        self.iter_fn = Some(Box::new(move || {
-            f();
-        }));
-    }
-
-    pub fn epilogue<T, F: 'static + FnMut() -> T>(&mut self, mut f: F) {
-        self.prologue_fn = Some(Box::new(move || {
-            f();
-        }));
+        Self { name, benchmark }
     }
 
     #[doc(hidden)]
@@ -83,17 +62,11 @@ impl Bencher {
                 "===== {} {} starting {}=====",
                 crate_name, name, start_label
             );
-            if let Some(ref mut f) = self.prologue_fn {
-                f();
-            }
+            self.benchmark.prologue();
             let time = std::time::Instant::now();
-            if let Some(ref mut f) = self.iter_fn {
-                f();
-            }
+            self.benchmark.iter();
             let elapsed = time.elapsed().as_micros() as f64 / 1000.0;
-            if let Some(ref mut f) = self.epilogue_fn {
-                f();
-            }
+            self.benchmark.epilogue();
             eprintln!(
                 "===== {} {} {} in {:.1} msec =====",
                 crate_name, name, end_label, elapsed

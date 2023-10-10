@@ -2,14 +2,14 @@ use proc_macro::TokenStream;
 use quote::quote;
 
 #[proc_macro_attribute]
-pub fn entry(_attr: TokenStream, item: TokenStream) -> TokenStream {
-    let input = syn::parse_macro_input!(item as syn::ItemFn);
-    let name = &input.sig.ident;
+pub fn bench(_attr: TokenStream, item: TokenStream) -> TokenStream {
+    let input = syn::parse_macro_input!(item as syn::ItemStruct);
+    let name = &input.ident;
     let result = quote! {
+        #input
+
         fn main() {
-            #input
-            let mut bencher = ::harness::Bencher::new(file!());
-            #name(&mut bencher);
+            let mut bencher = ::harness::Bencher::new(file!(), #name::default());
             bencher.run();
         }
     };
