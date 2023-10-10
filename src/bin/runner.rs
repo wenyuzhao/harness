@@ -1,4 +1,4 @@
-use std::{fs::OpenOptions, path::Path, process::Command};
+use std::{fs::OpenOptions, io, io::Write, path::Path, process::Command};
 
 use cargo_metadata::{MetadataCommand, Package};
 use clap::Parser;
@@ -118,9 +118,11 @@ impl Harness {
     fn run(&mut self, target_dir: &Path) -> anyhow::Result<()> {
         self.collect_benches()?;
         for bench in &self.benches {
-            print!("{} ", bench);
+            print!("[{}] ", bench);
+            io::stdout().flush()?;
             for i in 0..self.invocations {
                 print!("{}", i);
+                io::stdout().flush()?;
                 for (index, variant) in self.variants.iter().enumerate() {
                     assert!(index < 26);
                     const KEYS: &str = "abcdefghijklmnopqrstuvwxyz";
@@ -134,9 +136,11 @@ impl Harness {
                             print!(".")
                         }
                     }
+                    io::stdout().flush()?;
                 }
             }
             println!();
+            io::stdout().flush()?;
         }
         Ok(())
     }
