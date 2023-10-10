@@ -7,18 +7,20 @@ publish = false
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+rand = "0.8.5"
 
 [dev-dependencies]
 harness = { path = ".." }
 
 [features]
 default = []
-rec = []
+node_enqueuing = []
+edge_enqueuing = []
 
 [[bench]]
-name = "fib"
+name = "trace"
 harness = false
 
 [package.metadata.harness.profiles.default.build-variants]
-rec = { features = ["rec"] }
-iter = {}
+node_enqueuing = { features = ["node_enqueuing"] }
+edge_enqueuing = { features = ["edge_enqueuing"] }
