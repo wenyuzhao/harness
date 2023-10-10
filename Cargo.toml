@@ -8,7 +8,7 @@ description = "Precise and reproducible micro benchmarking"
 
 [[bin]]
 name = "cargo-harness"
-path = "src/bin/runner.rs"
+path = "src/runner/main.rs"
 
 [dependencies]
 anyhow = { version = "1.0.75", features = ["backtrace"] }
