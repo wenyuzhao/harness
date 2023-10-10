@@ -9,8 +9,7 @@ pub fn bench(_attr: TokenStream, item: TokenStream) -> TokenStream {
         #input
 
         fn main() {
-            let mut bencher = ::harness::Bencher::new(file!(), #name::default());
-            bencher.run();
+            ::harness::run(file!(), #name::default());
         }
     };
     result.into()
