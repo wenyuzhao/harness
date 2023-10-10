@@ -1,10 +1,3 @@
-// #![feature(test)]
-// extern crate test;
-
-// use test::Bencher;
-
-// fn add() {}
-
 use std::hint::black_box;
 
 #[harness::entry]

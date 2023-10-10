@@ -5,19 +5,31 @@ use clap::Parser;
 
 #[derive(Debug)]
 struct BuildVariant {
+    /// Name of the build variant
     name: String,
+    /// Cargo features to enable
     features: Vec<String>,
+    /// Whether to enable default features
     default_features: bool,
+    /// Commit hash to checkout. Defaults to `HEAD`.
+    #[allow(unused)]
     commit: Option<String>,
 }
 
+/// Benchmark running info
 #[derive(Debug)]
 struct Harness {
+    /// Unique ID of the run
     run_id: String,
+    /// Name of the current crate
     crate_name: String,
+    /// Names of the benches to run
     benches: Vec<String>,
+    /// Build variants to run
     variants: Vec<BuildVariant>,
+    /// Number of iterations
     iterations: usize,
+    /// Number of invocations
     invocations: usize,
 }
 
@@ -39,6 +51,7 @@ impl Harness {
         }
     }
 
+    /// Collect all available benchmarks
     fn collect_benches(&mut self) -> anyhow::Result<()> {
         let meta = MetadataCommand::new()
             .manifest_path("./Cargo.toml")
@@ -55,6 +68,7 @@ impl Harness {
         Ok(())
     }
 
+    /// Run one benchmark with a build variant, for N iterations.
     fn run_one(
         &self,
         variant: &BuildVariant,
@@ -99,6 +113,8 @@ impl Harness {
         }
     }
 
+    /// Run all benchmarks with all build variants.
+    /// Benchmarks are invoked one by one.
     fn run(&mut self, target_dir: &Path) -> anyhow::Result<()> {
         self.collect_benches()?;
         for bench in &self.benches {

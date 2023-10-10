@@ -1,5 +1,6 @@
 use clap::Parser;
 pub use harness_macros::entry;
+pub use std::hint::black_box;
 
 #[derive(Parser, Debug)]
 pub struct BenchArgs {
