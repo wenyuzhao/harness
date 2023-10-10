@@ -125,7 +125,7 @@ impl Harness {
                 io::stdout().flush()?;
                 for (index, variant) in self.variants.iter().enumerate() {
                     assert!(index < 26);
-                    const KEYS: &str = "abcdefghijklmnopqrstuvwxyz";
+                    const KEYS: &str = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
                     let key = KEYS.chars().nth(index).unwrap();
                     let result = self.run_one(variant, bench, target_dir);
                     match result {

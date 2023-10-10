@@ -1,6 +1,6 @@
 use clap::Parser;
 
-use crate::benchmark::Benchmark;
+use crate::{benchmark::Benchmark, probe::ProbeManager};
 
 #[derive(Parser, Debug)]
 pub struct BenchArgs {
@@ -22,6 +22,7 @@ pub struct BenchArgs {
 pub struct Bencher<B> {
     name: String,
     benchmark: B,
+    probes: ProbeManager,
 }
 
 impl<B: Benchmark> Bencher<B> {
@@ -29,12 +30,17 @@ impl<B: Benchmark> Bencher<B> {
     pub fn new(fname: &str, benchmark: B) -> Self {
         let fname = std::path::PathBuf::from(fname);
         let name = fname.file_stem().unwrap().to_str().unwrap().to_owned();
-        Self { name, benchmark }
+        Self {
+            name,
+            benchmark,
+            probes: ProbeManager::new(),
+        }
     }
 
     #[doc(hidden)]
     pub fn run(&mut self) {
         let args = BenchArgs::parse();
+        self.probes.init();
         let name = if let Some(n) = args.overwrite_benchmark_name.as_ref() {
             n.clone()
         } else {
@@ -46,7 +52,8 @@ impl<B: Benchmark> Bencher<B> {
             "cargo-harness".to_owned()
         };
         for i in 0..args.iterations {
-            let (start_label, end_label) = if i != args.iterations - 1 {
+            let is_timing_iteration = i == args.iterations - 1;
+            let (start_label, end_label) = if !is_timing_iteration {
                 (
                     format!("warmup {} ", i + 1),
                     format!("completed warmup {}", i + 1),
@@ -60,7 +67,13 @@ impl<B: Benchmark> Bencher<B> {
             );
             self.benchmark.prologue();
             let time = std::time::Instant::now();
+            if is_timing_iteration {
+                self.probes.harness_begin();
+            }
             self.benchmark.iter();
+            if is_timing_iteration {
+                self.probes.harness_end();
+            }
             let elapsed = time.elapsed().as_micros() as f64 / 1000.0;
             self.benchmark.epilogue();
             eprintln!(
@@ -68,5 +81,6 @@ impl<B: Benchmark> Bencher<B> {
                 crate_name, name, end_label, elapsed
             );
         }
+        self.probes.dump_counters();
     }
 }

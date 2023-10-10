@@ -11,6 +11,7 @@ rand = "0.8.5"
 
 [dev-dependencies]
 harness = { path = ".." }
+harness-perf = { path = "../probes/perf" }
 
 [features]
 default = []
@@ -20,6 +21,10 @@ edge_enqueuing = []
 [[bench]]
 name = "trace"
 harness = false
+
+[package.metadata.harness.profiles.default]
+probes = ["harness_perf"]
+env = { PERF_EVENTS = "PERF_COUNT_HW_CPU_CYCLES,PERF_COUNT_HW_INSTRUCTIONS,PERF_COUNT_HW_CACHE_L1D:MISS,PERF_COUNT_HW_CACHE_DTLB:MISS" }
 
 [package.metadata.harness.profiles.default.build-variants]
 node_enqueuing = { features = ["node_enqueuing"] }

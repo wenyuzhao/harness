@@ -1,5 +1,6 @@
 mod bencher;
 mod benchmark;
+pub mod probe;
 
 pub use benchmark::Benchmark;
 pub use harness_macros::bench;

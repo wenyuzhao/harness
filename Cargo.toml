@@ -17,7 +17,8 @@ chrono = "0.4.31"
 clap = { version = "4.4.6", features = ["derive"] }
 env_logger = "0.10.0"
 harness-macros = { path = "./macros" }
+libloading = "0.8.1"
 log = "0.4.20"
 
 [workspace]
-members = ["./macros", ".", "./example-crate"]
+members = [".", "macros", "example-crate", "probes/perf"]
