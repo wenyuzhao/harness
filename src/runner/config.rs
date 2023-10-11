@@ -48,11 +48,15 @@ pub struct Profile {
     pub invocations: usize,
 }
 
+fn default_true() -> bool {
+    true
+}
+
 #[derive(Deserialize, Debug, Clone)]
 pub struct BuildVariant {
     #[serde(default)]
     pub features: Vec<String>,
-    #[serde(default, rename = "default-features")]
+    #[serde(default = "default_true", rename = "default-features")]
     pub default_features: bool,
     #[serde(default)]
     pub env: HashMap<String, String>,
