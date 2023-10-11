@@ -1,6 +1,9 @@
-use harness::probe::{Counters, Probe, ProbeManager};
+use std::collections::HashMap;
+
+use harness::probe::{Probe, ProbeManager};
 use pfm::{PerfEvent, Perfmon};
 
+#[harness::probe]
 #[derive(Default)]
 pub struct PerfEventProbe {
     perfmon: Perfmon,
@@ -37,18 +40,18 @@ impl Probe for PerfEventProbe {
         }
     }
 
-    fn harness_end(&mut self, counters: &mut Counters) {
+    fn harness_end(&mut self) {
         for e in &mut self.events {
             e.disable().expect("Failed to disable perf evet");
         }
+    }
+
+    fn report_values(&mut self) -> HashMap<String, f32> {
+        let mut values = HashMap::new();
         for (i, e) in self.events.iter().enumerate() {
             let v = e.read().unwrap().value as f32;
-            counters.report(&self.event_names[i], v)
+            values.insert(self.event_names[i].clone(), v);
         }
+        values
     }
-}
-
-#[no_mangle]
-pub extern "C" fn register_probe(probes: &mut ProbeManager) {
-    probes.register(Box::new(PerfEventProbe::default()));
 }

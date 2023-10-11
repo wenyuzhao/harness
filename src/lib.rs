@@ -4,7 +4,7 @@ mod checks;
 pub mod probe;
 
 pub use benchmark::Benchmark;
-pub use harness_macros::bench;
+pub use harness_macros::{bench, probe};
 pub use std::hint::black_box;
 
 #[doc(hidden)]

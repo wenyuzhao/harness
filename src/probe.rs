@@ -1,15 +1,19 @@
-use std::time::Instant;
+use std::{collections::HashMap, time::Instant};
 
 use libloading::{Library, Symbol};
 
 #[derive(Default)]
-pub struct Counters {
+struct Counters {
     counters: Vec<(String, f32)>,
 }
 
 impl Counters {
-    pub fn report<'a>(&mut self, name: impl AsRef<str>, value: f32) {
-        self.counters.push((name.as_ref().to_owned(), value));
+    fn merge(&mut self, values: HashMap<String, f32>) {
+        let mut values = values.iter().collect::<Vec<_>>();
+        values.sort_by_key(|x| x.0.as_str());
+        for (k, v) in values {
+            self.counters.push((k.clone(), *v));
+        }
     }
 }
 
@@ -18,12 +22,17 @@ pub trait Probe {
 
     fn harness_begin(&mut self) {}
 
-    fn harness_end(&mut self, _counters: &mut Counters) {}
+    fn harness_end(&mut self) {}
+
+    fn report_values(&mut self) -> HashMap<String, f32> {
+        HashMap::new()
+    }
 }
 
 #[derive(Default)]
 struct BaseProbe {
     start: Option<std::time::Instant>,
+    elapsed: f32,
 }
 
 impl Probe for BaseProbe {
@@ -31,9 +40,14 @@ impl Probe for BaseProbe {
         self.start = Some(Instant::now());
     }
 
-    fn harness_end(&mut self, counters: &mut Counters) {
-        let elapsed = self.start.unwrap().elapsed().as_micros() as f32 / 1000.0;
-        counters.report("time", elapsed);
+    fn harness_end(&mut self) {
+        self.elapsed = self.start.unwrap().elapsed().as_micros() as f32 / 1000.0;
+    }
+
+    fn report_values(&mut self) -> HashMap<String, f32> {
+        let mut values = HashMap::new();
+        values.insert("time".to_owned(), self.elapsed);
+        values
     }
 }
 
@@ -74,7 +88,7 @@ impl ProbeManager {
                 };
                 let lib = Library::new(filename).unwrap();
                 let register_probe_fn: Symbol<extern "C" fn(probes: &mut ProbeManager)> =
-                    lib.get(b"register_probe").unwrap();
+                    lib.get(b"harness_register_probe").unwrap();
                 register_probe_fn(self);
                 self.libraries.push(lib);
             }
@@ -93,10 +107,16 @@ impl ProbeManager {
     }
 
     pub(crate) fn harness_end(&mut self) {
-        let mut counters = Counters::default();
-        self.base_probe.harness_end(&mut counters);
+        // harness_end
+        self.base_probe.harness_end();
         for probe in self.probes.iter_mut() {
-            probe.harness_end(&mut counters);
+            probe.harness_end();
+        }
+        // report values
+        let mut counters = Counters::default();
+        counters.merge(self.base_probe.report_values());
+        for probe in self.probes.iter_mut() {
+            counters.merge(probe.report_values());
         }
         self.counters = counters;
     }
