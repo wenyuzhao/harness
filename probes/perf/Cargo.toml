@@ -10,4 +10,6 @@ crate-type = ["cdylib"]
 
 [dependencies]
 harness = { path = "../.." }
+
+[target.'cfg(target_os = "linux")'.dependencies]
 pfm = "0.1.0"

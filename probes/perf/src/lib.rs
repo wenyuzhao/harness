@@ -1,16 +1,22 @@
 use std::collections::HashMap;
 
 use harness::probe::{Probe, ProbeManager};
-use pfm::{PerfEvent, Perfmon};
 
 #[harness::probe]
 #[derive(Default)]
 pub struct PerfEventProbe {
-    perfmon: Perfmon,
-    events: Vec<PerfEvent>,
+    #[cfg(target_os = "linux")]
+    perfmon: pfm::Perfmon,
+    #[cfg(target_os = "linux")]
+    events: Vec<pfm::PerfEvent>,
+    #[cfg(target_os = "linux")]
     event_names: Vec<String>,
 }
 
+#[cfg(not(target_os = "linux"))]
+impl Probe for PerfEventProbe {}
+
+#[cfg(target_os = "linux")]
 impl Probe for PerfEventProbe {
     fn init(&mut self) {
         self.perfmon
@@ -26,7 +32,7 @@ impl Probe for PerfEventProbe {
         self.events = self
             .event_names
             .iter()
-            .map(|s| PerfEvent::new(s, true).unwrap())
+            .map(|s| pfm::PerfEvent::new(s, true).unwrap())
             .collect();
         for e in &mut self.events {
             e.open(0, -1).unwrap();
