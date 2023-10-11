@@ -3,6 +3,8 @@ use std::{fs::OpenOptions, io, io::Write, path::Path, process::Command};
 use cargo_metadata::MetadataCommand;
 use clap::Parser;
 
+#[path = "../checks.rs"]
+mod checks;
 mod config;
 
 /// Benchmark running info
@@ -53,6 +55,7 @@ impl Harness {
         variant: &config::BuildVariant,
         bench: &str,
         target_dir: &Path,
+        allow_dirty: bool,
     ) -> anyhow::Result<()> {
         let dir = target_dir.join("harness").join("logs").join(&self.run_id);
         std::fs::create_dir_all(&dir)?;
@@ -85,6 +88,11 @@ impl Harness {
             } else {
                 vec![]
             })
+            .args(if allow_dirty {
+                vec!["--allow-dirty"]
+            } else {
+                vec![]
+            })
             .status()?;
         if out.success() {
             Ok(())
@@ -99,7 +107,7 @@ impl Harness {
 
     /// Run all benchmarks with all build variants.
     /// Benchmarks are invoked one by one.
-    fn run(&mut self, target_dir: &Path) -> anyhow::Result<()> {
+    fn run(&mut self, target_dir: &Path, allow_dirty: bool) -> anyhow::Result<()> {
         self.collect_benches()?;
         for bench in &self.benches {
             print!("[{}] ", bench);
@@ -113,8 +121,14 @@ impl Harness {
                     assert!(index < 26);
                     const KEYS: &str = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
                     let key = KEYS.chars().nth(index).unwrap();
-                    let result =
-                        self.run_one(&self.profile, variant_name, variant, bench, target_dir);
+                    let result = self.run_one(
+                        &self.profile,
+                        variant_name,
+                        variant,
+                        bench,
+                        target_dir,
+                        allow_dirty,
+                    );
                     match result {
                         Ok(_) => {
                             print!("{}", key)
@@ -149,21 +163,6 @@ pub struct HarnessCmdArgs {
     pub allow_dirty: bool,
 }
 
-fn check_git_worktree(allow_dirty: bool) -> anyhow::Result<()> {
-    let out = std::process::Command::new("git")
-        .args(["status", "--short"])
-        .output()
-        .unwrap();
-    let out = String::from_utf8(out.stdout).unwrap();
-    if !out.trim().is_empty() {
-        if !allow_dirty {
-            anyhow::bail!("Git worktree is dirty.");
-        }
-        eprintln!("🚨 WARNING: Git worktree is dirty.");
-    }
-    Ok(())
-}
-
 fn main() -> anyhow::Result<()> {
     if std::env::var("RUST_LOG").is_err() {
         std::env::set_var("RUST_LOG", "info")
@@ -180,12 +179,11 @@ fn main() -> anyhow::Result<()> {
     let Some(pkg) = meta.root_package() else {
         anyhow::bail!("Could not find root package");
     };
-    check_git_worktree(args.allow_dirty)?;
+    checks::pre_benchmarking_checks(args.allow_dirty)?;
     let config = config::load_from_cargo_toml()?;
     let Some(mut profile) = config.profiles.get(&args.profile).cloned() else {
         anyhow::bail!("Could not find harness profile `{}`", args.profile);
     };
-    println!("profile: {profile:?}");
     // Overwrite invocations and iterations
     if let Some(invocations) = args.invocations {
         profile.invocations = invocations;
@@ -196,6 +194,6 @@ fn main() -> anyhow::Result<()> {
     let time = chrono::Local::now().format("%Y%m%d-%H%M%S").to_string();
     let run_id = format!("{}-{}", args.profile, time);
     let mut harness = Harness::new(run_id, pkg.name.clone(), profile);
-    harness.run(target_dir)?;
+    harness.run(target_dir, args.allow_dirty)?;
     Ok(())
 }

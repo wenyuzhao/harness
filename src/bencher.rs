@@ -20,6 +20,9 @@ pub struct BenchArgs {
     #[doc(hidden)]
     /// Overwrite crate name
     pub overwrite_crate_name: Option<String>,
+    #[arg(long, default_value = "false")]
+    /// Allow dirty working directories
+    pub allow_dirty: bool,
 }
 
 pub struct Bencher<B> {
@@ -41,8 +44,9 @@ impl<B: Benchmark> Bencher<B> {
     }
 
     #[doc(hidden)]
-    pub fn run(&mut self) {
+    pub fn run(&mut self) -> anyhow::Result<()> {
         let args = BenchArgs::parse();
+        crate::checks::pre_benchmarking_checks(args.allow_dirty)?;
         self.probes.init(&args.probes);
         let name = if let Some(n) = args.overwrite_benchmark_name.as_ref() {
             n.clone()
@@ -85,5 +89,6 @@ impl<B: Benchmark> Bencher<B> {
             );
         }
         self.probes.dump_counters();
+        Ok(())
     }
 }
