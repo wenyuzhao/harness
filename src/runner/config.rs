@@ -1,6 +1,6 @@
 use std::{collections::HashMap, path::PathBuf};
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize)]
 struct CargoConfig {
@@ -23,7 +23,7 @@ struct CargoConfigPackageMetadata {
     _others: HashMap<String, toml::Value>,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Config {
     pub profiles: HashMap<String, Profile>,
 }
@@ -32,7 +32,7 @@ fn one() -> usize {
     1
 }
 
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Profile {
     #[serde(default)]
     pub probes: Vec<String>,
@@ -52,7 +52,7 @@ fn default_true() -> bool {
     true
 }
 
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct BuildVariant {
     #[serde(default)]
     pub features: Vec<String>,

@@ -28,41 +28,55 @@ pub fn dump_global_metadata(
     profile: &Profile,
     log_dir: &PathBuf,
 ) -> anyhow::Result<()> {
+    // dump to file
+    std::fs::create_dir_all(log_dir)?;
+    #[derive(serde::Serialize)]
+    struct ProfileWithExtraMeta<'a> {
+        #[serde(flatten)]
+        profile: &'a Profile,
+        runid: &'a str,
+        #[serde(rename = "profile-commit")]
+        profile_commit: String,
+        os: String,
+        #[serde(rename = "kernel-version")]
+        kernel_version: String,
+        #[serde(rename = "memory-size")]
+        memory_size: String,
+        host: String,
+    }
+    let mut sys = sysinfo::System::new_all();
+    sys.refresh_all();
+    let meta = ProfileWithExtraMeta {
+        profile,
+        runid,
+        profile_commit: get_git_hash(),
+        os: sys.long_os_version().unwrap_or_default(),
+        kernel_version: sys.kernel_version().unwrap_or("unknown".to_owned()),
+        memory_size: format!("{:.1} GB", sys.total_memory() as f32 / (1 << 30) as f32),
+        host: sys.host_name().unwrap_or("unknown".to_owned()),
+    };
+    std::fs::write(log_dir.join("config.toml"), toml::to_string(&meta)?)?;
+    // dump to terminal
     writeln!(f, "---")?;
     // runid and log dir
-    writeln!(f, "runid: {}", runid)?;
-    std::fs::create_dir_all(log_dir)?;
+    writeln!(f, "runid: {}", meta.runid)?;
     writeln!(
         f,
         "log-dir: {}",
         log_dir.canonicalize()?.to_string_lossy().as_ref()
     )?;
     // machine and system info
-    let mut sys = sysinfo::System::new_all();
-    sys.refresh_all();
-    writeln!(f, "os: {}", sys.long_os_version().unwrap_or_default())?;
-    writeln!(
-        f,
-        "kernel-version: {}",
-        sys.kernel_version().unwrap_or("unknown".to_owned())
-    )?;
-    writeln!(
-        f,
-        "host: {}",
-        sys.host_name().unwrap_or("unknown".to_owned())
-    )?;
-    writeln!(
-        f,
-        "memory-size: {:.1} GB",
-        sys.total_memory() as f32 / (1 << 30) as f32
-    )?;
+    writeln!(f, "os: {}", meta.os)?;
+    writeln!(f, "kernel-version: {}", meta.kernel_version)?;
+    writeln!(f, "host: {}", meta.host)?;
+    writeln!(f, "memory-size: {:.1} GB", meta.memory_size)?;
     // env variable
     writeln!(f, "env:")?;
     for (k, v) in profile.env.iter() {
         writeln!(f, "  {}: {}", k, v)?;
     }
     // git commit
-    writeln!(f, "profile-commit: {}", get_git_hash())?;
+    writeln!(f, "profile-commit: {}", meta.profile_commit)?;
     writeln!(f, "---")?;
     Ok(())
 }
