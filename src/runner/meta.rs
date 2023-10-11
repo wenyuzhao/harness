@@ -33,15 +33,10 @@ pub fn dump_global_metadata(
     // machine and system info
     let mut sys = sysinfo::System::new_all();
     sys.refresh_all();
+    writeln!(f, "os: {}", sys.long_os_version().unwrap_or_default())?;
     writeln!(
         f,
-        "os: { } {}",
-        sys.name().unwrap_or("unknown".to_owned()),
-        sys.os_version().unwrap_or_default()
-    )?;
-    writeln!(
-        f,
-        "kernel: {}",
+        "kernel-version: {}",
         sys.kernel_version().unwrap_or("unknown".to_owned())
     )?;
     writeln!(
