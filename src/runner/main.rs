@@ -93,6 +93,7 @@ impl Harness {
             } else {
                 vec![]
             })
+            .envs(&profile.env)
             .status()?;
         if out.success() {
             Ok(())

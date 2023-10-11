@@ -10,3 +10,4 @@ crate-type = ["cdylib"]
 
 [dependencies]
 harness = { path = "../.." }
+pfm = "0.1.0"
