@@ -1,15 +1,15 @@
-use std::{collections::HashMap, time::Instant};
+use std::time::Instant;
 
 use libloading::{Library, Symbol};
 
 #[derive(Default)]
 pub struct Counters {
-    counters: HashMap<&'static str, f32>,
+    counters: Vec<(String, f32)>,
 }
 
 impl Counters {
-    pub fn report(&mut self, name: &'static str, value: f32) {
-        self.counters.insert(name, value);
+    pub fn report<'a>(&mut self, name: impl AsRef<str>, value: f32) {
+        self.counters.push((name.as_ref().to_owned(), value));
     }
 }
 
@@ -32,7 +32,7 @@ impl Probe for BaseProbe {
     }
 
     fn harness_end(&mut self, counters: &mut Counters) {
-        let elapsed = self.start.unwrap().elapsed().as_millis() as f32;
+        let elapsed = self.start.unwrap().elapsed().as_micros() as f32 / 1000.0;
         counters.report("time", elapsed);
     }
 }

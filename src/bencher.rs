@@ -81,7 +81,7 @@ impl<B: Benchmark> Bencher<B> {
             if is_timing_iteration {
                 self.probes.harness_end();
             }
-            let elapsed = time.elapsed().as_micros() as f64 / 1000.0;
+            let elapsed = time.elapsed().as_micros() as f32 / 1000.0;
             self.benchmark.epilogue();
             eprintln!(
                 "===== {} {} {} in {:.1} msec =====",
