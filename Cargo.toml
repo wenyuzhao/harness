@@ -19,6 +19,8 @@ env_logger = "0.10.0"
 harness-macros = { path = "./macros" }
 libloading = "0.8.1"
 log = "0.4.20"
+serde = { version = "1.0.188", features = ["derive"] }
+toml = "0.8.2"
 
 [workspace]
 members = [".", "macros", "example-crate", "probes/perf"]

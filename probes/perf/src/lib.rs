@@ -3,11 +3,11 @@ use std::time::Instant;
 use harness::probe::{Counters, Probe, ProbeManager};
 
 #[derive(Default)]
-pub struct StatProbe {
+pub struct PerfEventProbe {
     start: Option<Instant>,
 }
 
-impl Probe for StatProbe {
+impl Probe for PerfEventProbe {
     fn harness_begin(&mut self) {
         self.start = Some(Instant::now());
     }
@@ -20,5 +20,5 @@ impl Probe for StatProbe {
 
 #[no_mangle]
 pub extern "C" fn register_probe(probes: &mut ProbeManager) {
-    probes.register(Box::new(StatProbe::default()));
+    probes.register(Box::new(PerfEventProbe::default()));
 }

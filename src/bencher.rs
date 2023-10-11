@@ -9,6 +9,9 @@ pub struct BenchArgs {
     #[arg(short = 'n', long, default_value = "1")]
     /// Number of iterations to run
     pub iterations: usize,
+    /// Comma-separated probe names
+    #[arg(long, default_value = "")]
+    pub probes: String,
     #[arg(long)]
     #[doc(hidden)]
     /// Overwrite benchmark name
@@ -40,7 +43,7 @@ impl<B: Benchmark> Bencher<B> {
     #[doc(hidden)]
     pub fn run(&mut self) {
         let args = BenchArgs::parse();
-        self.probes.init();
+        self.probes.init(&args.probes);
         let name = if let Some(n) = args.overwrite_benchmark_name.as_ref() {
             n.clone()
         } else {

@@ -1,20 +1,9 @@
 use std::{fs::OpenOptions, io, io::Write, path::Path, process::Command};
 
-use cargo_metadata::{MetadataCommand, Package};
+use cargo_metadata::MetadataCommand;
 use clap::Parser;
 
-#[derive(Debug)]
-struct BuildVariant {
-    /// Name of the build variant
-    name: String,
-    /// Cargo features to enable
-    features: Vec<String>,
-    /// Whether to enable default features
-    default_features: bool,
-    /// Commit hash to checkout. Defaults to `HEAD`.
-    #[allow(unused)]
-    commit: Option<String>,
-}
+mod config;
 
 /// Benchmark running info
 #[derive(Debug)]
@@ -25,29 +14,17 @@ struct Harness {
     crate_name: String,
     /// Names of the benches to run
     benches: Vec<String>,
-    /// Build variants to run
-    variants: Vec<BuildVariant>,
-    /// Number of iterations
-    iterations: usize,
-    /// Number of invocations
-    invocations: usize,
+    /// Benchmark profile
+    profile: config::Profile,
 }
 
 impl Harness {
-    fn new(
-        run_id: String,
-        crate_name: String,
-        variants: Vec<BuildVariant>,
-        iterations: usize,
-        invocations: usize,
-    ) -> Self {
+    fn new(run_id: String, crate_name: String, profile: config::Profile) -> Self {
         Self {
             run_id,
             crate_name,
             benches: Vec::new(),
-            variants,
-            iterations,
-            invocations,
+            profile,
         }
     }
 
@@ -71,13 +48,15 @@ impl Harness {
     /// Run one benchmark with a build variant, for N iterations.
     fn run_one(
         &self,
-        variant: &BuildVariant,
+        profile: &config::Profile,
+        varient_name: &str,
+        variant: &config::BuildVariant,
         bench: &str,
         target_dir: &Path,
     ) -> anyhow::Result<()> {
         let dir = target_dir.join("harness").join("logs").join(&self.run_id);
         std::fs::create_dir_all(&dir)?;
-        let log_file = dir.join(format!("{}.{}.log", bench, variant.name));
+        let log_file = dir.join(format!("{}.{}.log", bench, varient_name));
         let outputs = OpenOptions::new()
             .write(true)
             .append(true)
@@ -96,11 +75,16 @@ impl Harness {
                 &[] as &[&str]
             })
             .args(["--", "-n"])
-            .arg(format!("{}", self.iterations))
+            .arg(format!("{}", self.profile.iterations))
             .arg("--overwrite-crate-name")
             .arg(&self.crate_name)
             .arg("--overwrite-benchmark-name")
             .arg(bench)
+            .args(if !profile.probes.is_empty() {
+                vec!["--probes".to_owned(), profile.probes.join(",")]
+            } else {
+                vec![]
+            })
             .status()?;
         if out.success() {
             Ok(())
@@ -120,14 +104,17 @@ impl Harness {
         for bench in &self.benches {
             print!("[{}] ", bench);
             io::stdout().flush()?;
-            for i in 0..self.invocations {
+            for i in 0..self.profile.invocations {
                 print!("{}", i);
                 io::stdout().flush()?;
-                for (index, variant) in self.variants.iter().enumerate() {
+                for (index, (variant_name, variant)) in
+                    self.profile.build_variants.iter().enumerate()
+                {
                     assert!(index < 26);
                     const KEYS: &str = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
                     let key = KEYS.chars().nth(index).unwrap();
-                    let result = self.run_one(variant, bench, target_dir);
+                    let result =
+                        self.run_one(&self.profile, variant_name, variant, bench, target_dir);
                     match result {
                         Ok(_) => {
                             print!("{}", key)
@@ -148,58 +135,18 @@ impl Harness {
 
 #[derive(Parser, Debug)]
 pub struct HarnessCmdArgs {
-    #[arg(short = 'n', long, default_value = "1")]
+    #[arg(short = 'n', long)]
     /// Number of iterations
-    pub iterations: usize,
-    #[arg(short = 'i', long, default_value = "1")]
+    pub iterations: Option<usize>,
+    #[arg(short = 'i', long)]
     /// Number of invocations
-    pub invocations: usize,
+    pub invocations: Option<usize>,
     #[arg(long, default_value = "default")]
     /// Benchmarking profile
     pub profile: String,
     #[arg(long, default_value = "false")]
     /// Allow dirty working directories
     pub allow_dirty: bool,
-}
-
-fn get_build_variants(pkg: &Package, profile: &str) -> anyhow::Result<Vec<BuildVariant>> {
-    let variants = pkg
-        .metadata
-        .get("harness")
-        .and_then(|v| v.get("profiles"))
-        .and_then(|v| v.get(profile))
-        .and_then(|v| v.get("build-variants"))
-        .and_then(|v| v.as_object());
-    if let Some(variants) = variants {
-        let mut results = vec![];
-        for (k, v) in variants {
-            let features = v
-                .get("features")
-                .and_then(|v| v.as_array())
-                .map(|v| v.iter().map(|v| v.as_str().unwrap().to_owned()).collect())
-                .unwrap_or_default();
-            let default_features = v
-                .get("default-features")
-                .and_then(|v| v.as_bool())
-                .unwrap_or(true);
-            let commit = v
-                .get("commit")
-                .and_then(|v| v.as_str())
-                .map(|v| v.to_owned());
-            results.push(BuildVariant {
-                name: k.to_owned(),
-                features,
-                default_features,
-                commit,
-            });
-        }
-        Ok(results)
-    } else {
-        anyhow::bail!(
-            "Key `package.metadata.harness.profiles.{}.build-variants` not found in Cargo.toml",
-            profile
-        );
-    }
 }
 
 fn check_git_worktree(allow_dirty: bool) -> anyhow::Result<()> {
@@ -231,19 +178,24 @@ fn main() -> anyhow::Result<()> {
     };
     let target_dir = meta.target_directory.as_std_path();
     let Some(pkg) = meta.root_package() else {
-        anyhow::bail!("No root package found");
+        anyhow::bail!("Could not find root package");
     };
     check_git_worktree(args.allow_dirty)?;
-    let variants = get_build_variants(pkg, &args.profile)?;
+    let config = config::load_from_cargo_toml()?;
+    let Some(mut profile) = config.profiles.get(&args.profile).cloned() else {
+        anyhow::bail!("Could not find harness profile `{}`", args.profile);
+    };
+    println!("profile: {profile:?}");
+    // Overwrite invocations and iterations
+    if let Some(invocations) = args.invocations {
+        profile.invocations = invocations;
+    }
+    if let Some(iterations) = args.iterations {
+        profile.iterations = iterations;
+    }
     let time = chrono::Local::now().format("%Y%m%d-%H%M%S").to_string();
     let run_id = format!("{}-{}", args.profile, time);
-    let mut harness = Harness::new(
-        run_id,
-        pkg.name.clone(),
-        variants,
-        args.iterations,
-        args.invocations,
-    );
+    let mut harness = Harness::new(run_id, pkg.name.clone(), profile);
     harness.run(target_dir)?;
     Ok(())
 }

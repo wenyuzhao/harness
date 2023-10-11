@@ -41,14 +41,16 @@ pub struct ProbeManager {
     base_probe: BaseProbe,
     probes: Vec<Box<dyn Probe>>,
     counters: Counters,
+    libraries: Vec<Library>,
 }
 
 impl ProbeManager {
     pub(crate) fn new() -> Self {
         Self {
             base_probe: BaseProbe::default(),
-            probes: Vec::new(),
+            probes: vec![],
             counters: Counters::default(),
+            libraries: vec![],
         }
     }
 
@@ -56,12 +58,26 @@ impl ProbeManager {
         self.probes.push(probe);
     }
 
-    pub(crate) fn init(&mut self) {
-        unsafe {
-            let lib = Library::new("libharness_stat.dylib").unwrap();
-            let register_probe_fn: Symbol<extern "C" fn(probes: &mut ProbeManager)> =
-                lib.get(b"register_probe").unwrap();
-            register_probe_fn(self);
+    pub(crate) fn init(&mut self, probes: &str) {
+        let probes = probes
+            .split(',')
+            .map(|s| s.trim())
+            .filter(|s| !s.is_empty());
+        for probe in probes {
+            unsafe {
+                let filename = if cfg!(target_os = "macos") {
+                    format!("lib{probe}.dylib")
+                } else if cfg!(target_os = "linux") {
+                    format!("lib{probe}.so")
+                } else {
+                    unimplemented!()
+                };
+                let lib = Library::new(filename).unwrap();
+                let register_probe_fn: Symbol<extern "C" fn(probes: &mut ProbeManager)> =
+                    lib.get(b"register_probe").unwrap();
+                register_probe_fn(self);
+                self.libraries.push(lib);
+            }
         }
         self.base_probe.init();
         for probe in self.probes.iter_mut() {
