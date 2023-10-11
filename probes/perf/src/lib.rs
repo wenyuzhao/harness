@@ -1,3 +1,4 @@
+#[cfg(target_os = "linux")]
 use std::collections::HashMap;
 
 use harness::probe::{Probe, ProbeManager};
