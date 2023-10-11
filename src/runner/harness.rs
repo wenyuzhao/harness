@@ -7,8 +7,6 @@ use crate::config;
 /// Benchmark running info
 #[derive(Debug)]
 pub struct Harness {
-    /// Unique ID of the run
-    run_id: String,
     /// Name of the current crate
     crate_name: String,
     /// Names of the benches to run
@@ -18,9 +16,8 @@ pub struct Harness {
 }
 
 impl Harness {
-    pub fn new(run_id: String, crate_name: String, profile: config::Profile) -> Self {
+    pub fn new(crate_name: String, profile: config::Profile) -> Self {
         Self {
-            run_id,
             crate_name,
             benches: Vec::new(),
             profile,
@@ -51,12 +48,11 @@ impl Harness {
         varient_name: &str,
         variant: &config::BuildVariant,
         bench: &str,
-        target_dir: &Path,
+        log_dir: &Path,
         allow_dirty: bool,
     ) -> anyhow::Result<()> {
-        let dir = target_dir.join("harness").join("logs").join(&self.run_id);
-        std::fs::create_dir_all(&dir)?;
-        let log_file = dir.join(format!("{}.{}.log", bench, varient_name));
+        std::fs::create_dir_all(&log_dir)?;
+        let log_file = log_dir.join(format!("{}.{}.log", bench, varient_name));
         let outputs = OpenOptions::new()
             .write(true)
             .append(true)
@@ -106,7 +102,7 @@ impl Harness {
 
     /// Run all benchmarks with all build variants.
     /// Benchmarks are invoked one by one.
-    pub fn run(&mut self, target_dir: &Path, allow_dirty: bool) -> anyhow::Result<()> {
+    pub fn run(&mut self, log_dir: &Path, allow_dirty: bool) -> anyhow::Result<()> {
         self.collect_benches()?;
         for bench in &self.benches {
             print!("[{}] ", bench);
@@ -125,7 +121,7 @@ impl Harness {
                         variant_name,
                         variant,
                         bench,
-                        target_dir,
+                        log_dir,
                         allow_dirty,
                     );
                     match result {

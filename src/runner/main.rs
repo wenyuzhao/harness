@@ -61,8 +61,9 @@ fn main() -> anyhow::Result<()> {
         profile.iterations = iterations;
     }
     let run_id = generate_runid(&args.profile);
-    crate::meta::dump_global_metadata(&mut std::io::stdout(), &run_id, &profile)?;
-    let mut harness = harness::Harness::new(run_id, pkg.name.clone(), profile);
-    harness.run(target_dir, args.allow_dirty)?;
+    let log_dir = target_dir.join("harness").join("logs").join(&run_id);
+    crate::meta::dump_global_metadata(&mut std::io::stdout(), &run_id, &profile, &log_dir)?;
+    let mut harness = harness::Harness::new(pkg.name.clone(), profile);
+    harness.run(&log_dir, args.allow_dirty)?;
     Ok(())
 }

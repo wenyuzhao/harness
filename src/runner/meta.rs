@@ -26,10 +26,17 @@ pub fn dump_global_metadata(
     f: &mut impl Write,
     runid: &str,
     profile: &Profile,
+    log_dir: &PathBuf,
 ) -> anyhow::Result<()> {
     writeln!(f, "---")?;
-    // runid
+    // runid and log dir
     writeln!(f, "runid: {}", runid)?;
+    std::fs::create_dir_all(log_dir)?;
+    writeln!(
+        f,
+        "log-dir: {}",
+        log_dir.canonicalize()?.to_string_lossy().as_ref()
+    )?;
     // machine and system info
     let mut sys = sysinfo::System::new_all();
     sys.refresh_all();
