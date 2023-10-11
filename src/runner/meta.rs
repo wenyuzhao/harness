@@ -16,8 +16,20 @@ fn get_git_hash() -> String {
     hash
 }
 
-pub fn dump_global_metadata(f: &mut impl Write, profile: &Profile) -> anyhow::Result<()> {
+pub fn get_hostname() -> String {
+    let mut sys = sysinfo::System::new_all();
+    sys.refresh_all();
+    sys.host_name().unwrap_or("unknown".to_owned())
+}
+
+pub fn dump_global_metadata(
+    f: &mut impl Write,
+    runid: &str,
+    profile: &Profile,
+) -> anyhow::Result<()> {
     writeln!(f, "---")?;
+    // runid
+    writeln!(f, "runid: {}", runid)?;
     // machine and system info
     let mut sys = sysinfo::System::new_all();
     sys.refresh_all();

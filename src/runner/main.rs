@@ -23,6 +23,15 @@ pub struct HarnessCmdArgs {
     pub allow_dirty: bool,
 }
 
+fn generate_runid(profile_name: &str) -> String {
+    let time = chrono::Local::now()
+        .format("%Y-%m-%d-%a-%H%M%S")
+        .to_string();
+    let host = crate::meta::get_hostname();
+    let run_id = format!("{}-{}-{}", profile_name, host, time);
+    run_id
+}
+
 fn main() -> anyhow::Result<()> {
     if std::env::var("RUST_LOG").is_err() {
         std::env::set_var("RUST_LOG", "info")
@@ -51,9 +60,8 @@ fn main() -> anyhow::Result<()> {
     if let Some(iterations) = args.iterations {
         profile.iterations = iterations;
     }
-    crate::meta::dump_global_metadata(&mut std::io::stdout(), &profile)?;
-    let time = chrono::Local::now().format("%Y%m%d-%H%M%S").to_string();
-    let run_id = format!("{}-{}", args.profile, time);
+    let run_id = generate_runid(&args.profile);
+    crate::meta::dump_global_metadata(&mut std::io::stdout(), &run_id, &profile)?;
     let mut harness = harness::Harness::new(run_id, pkg.name.clone(), profile);
     harness.run(target_dir, args.allow_dirty)?;
     Ok(())
