@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use clap::Parser;
 
 use crate::{benchmark::Benchmark, probe::ProbeManager};
@@ -20,6 +22,18 @@ pub struct BenchArgs {
     #[doc(hidden)]
     /// Overwrite crate name
     pub overwrite_crate_name: Option<String>,
+    #[arg(long)]
+    #[doc(hidden)]
+    /// Specify current invocation
+    pub current_invocation: Option<usize>,
+    #[arg(long)]
+    #[doc(hidden)]
+    /// Append counter values to csv
+    pub output_csv: Option<PathBuf>,
+    #[arg(long)]
+    #[doc(hidden)]
+    /// Specify current build varient name
+    pub current_build_variant: Option<String>,
     #[arg(long, default_value = "false")]
     /// Allow dirty working directories
     pub allow_dirty: bool,
@@ -88,7 +102,12 @@ impl<B: Benchmark> Bencher<B> {
                 crate_name, name, end_label, elapsed
             );
         }
-        self.probes.dump_counters();
+        self.probes.dump_counters(
+            &name,
+            args.output_csv.as_ref(),
+            args.current_invocation,
+            args.current_build_variant.as_ref(),
+        );
         Ok(())
     }
 }

@@ -50,6 +50,7 @@ impl Harness {
         bench: &str,
         log_dir: &Path,
         allow_dirty: bool,
+        invocation: usize,
     ) -> anyhow::Result<()> {
         std::fs::create_dir_all(&log_dir)?;
         let log_file = log_dir.join(format!("{}.{}.log", bench, varient_name));
@@ -76,7 +77,13 @@ impl Harness {
             .arg("--overwrite-crate-name")
             .arg(&self.crate_name)
             .arg("--overwrite-benchmark-name")
-            .arg(bench);
+            .arg(bench)
+            .arg("--current-invocation")
+            .arg(format!("{invocation}"))
+            .arg("--output-csv")
+            .arg(log_dir.join("results.csv"))
+            .arg("--current-build-variant")
+            .arg(varient_name);
         if !profile.probes.is_empty() {
             cmd.args(["--probes".to_owned(), profile.probes.join(",")]);
         }
@@ -125,6 +132,7 @@ impl Harness {
                         bench,
                         log_dir,
                         allow_dirty,
+                        i,
                     );
                     match result {
                         Ok(_) => {

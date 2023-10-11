@@ -1,4 +1,5 @@
-use std::{collections::HashMap, time::Instant};
+use std::io::Write;
+use std::{collections::HashMap, fs::OpenOptions, path::PathBuf, time::Instant};
 
 use libloading::{Library, Symbol};
 
@@ -121,7 +122,13 @@ impl ProbeManager {
         self.counters = counters;
     }
 
-    pub(crate) fn dump_counters(&mut self) {
+    pub(crate) fn dump_counters(
+        &mut self,
+        name: &str,
+        csv: Option<&PathBuf>,
+        invocation: Option<usize>,
+        build_variant: Option<&String>,
+    ) {
         eprintln!(
             "============================ Harness Statistics Totals ============================"
         );
@@ -136,5 +143,28 @@ impl ProbeManager {
         eprintln!(
             "------------------------------ End Harness Statistics -----------------------------"
         );
+        // dump counters to csv
+        if let Some(csv) = csv {
+            if !csv.exists() {
+                let mut headers = "bench,build,invocation".to_owned();
+                for (name, _value) in &self.counters.counters {
+                    headers += ",";
+                    headers += name;
+                }
+                headers += "\n";
+                std::fs::write(csv, headers).unwrap();
+            }
+            let mut record = format!(
+                "{},{},{}",
+                name,
+                build_variant.unwrap(),
+                invocation.unwrap_or(0)
+            );
+            for (_name, value) in &self.counters.counters {
+                record += &format!(",{}", value);
+            }
+            let mut csv = OpenOptions::new().append(true).open(csv).unwrap();
+            writeln!(csv, "{record}").unwrap();
+        }
     }
 }
