@@ -59,6 +59,7 @@ impl Harness {
             .create(true)
             .open(&log_file)?;
         let errors = outputs.try_clone()?;
+        let mut outputs2 = outputs.try_clone()?;
         let mut cmd = Command::new("cargo");
         cmd.stdout(outputs)
             .stderr(errors)
@@ -87,8 +88,9 @@ impl Harness {
             envs.insert(k.clone(), v.clone());
         }
         cmd.envs(&envs);
-        crate::meta::dump_metadata_for_single_invocation(&log_file, &cmd, variant, &envs)?;
+        crate::meta::dump_metadata_for_single_invocation(&mut outputs2, &cmd, variant, &envs)?;
         let out = cmd.status()?;
+        writeln!(outputs2, "\n\n\n")?;
         if out.success() {
             Ok(())
         } else {

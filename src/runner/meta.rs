@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fs::File, io::Write, path::PathBuf, process::Command};
+use std::{collections::HashMap, io::Write, path::PathBuf, process::Command};
 
 use sysinfo::SystemExt;
 
@@ -68,12 +68,11 @@ pub fn dump_global_metadata(
 }
 
 pub fn dump_metadata_for_single_invocation(
-    log: &PathBuf,
+    f: &mut impl Write,
     cmd: &Command,
     variant: &config::BuildVariant,
     envs: &HashMap<String, String>,
 ) -> anyhow::Result<()> {
-    let mut f = File::create(log)?;
     writeln!(f, "---")?;
     // command line args
     let prog = cmd.get_program().to_string_lossy();
