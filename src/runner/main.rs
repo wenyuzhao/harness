@@ -1,14 +1,26 @@
-use cargo_metadata::MetadataCommand;
-use clap::Parser;
+use clap::{Parser, Subcommand};
 
 #[path = "../checks.rs"]
 mod checks;
 mod config;
 mod harness;
 mod meta;
+mod plot;
 
-#[derive(Parser, Debug)]
-pub struct HarnessCmdArgs {
+#[derive(Parser)]
+pub struct Cli {
+    #[command(subcommand)]
+    command: Commands,
+}
+
+#[derive(Subcommand)]
+pub enum Commands {
+    Run(RunArgs),
+    Plot(PlotArgs),
+}
+
+#[derive(Parser)]
+pub struct RunArgs {
     #[arg(short = 'n', long)]
     /// Number of iterations
     pub iterations: Option<usize>,
@@ -23,13 +35,13 @@ pub struct HarnessCmdArgs {
     pub allow_dirty: bool,
 }
 
-fn generate_runid(profile_name: &str) -> String {
-    let time = chrono::Local::now()
-        .format("%Y-%m-%d-%a-%H%M%S")
-        .to_string();
-    let host = crate::meta::get_hostname();
-    let run_id = format!("{}-{}-{}", profile_name, host, time);
-    run_id
+#[derive(Parser)]
+pub struct PlotArgs {
+    pub y: String,
+    #[arg(short = 'b', long)]
+    pub baseline: Option<String>,
+    #[arg(short = 'o', long)]
+    pub output: Option<String>,
 }
 
 fn main() -> anyhow::Result<()> {
@@ -40,30 +52,9 @@ fn main() -> anyhow::Result<()> {
     if args.len() > 1 && args[1] == "harness" {
         args = args[1..].to_vec();
     }
-    let args = HarnessCmdArgs::parse_from(args);
-    let Ok(meta) = MetadataCommand::new().manifest_path("./Cargo.toml").exec() else {
-        anyhow::bail!("Failed to get metadata from ./Cargo.toml");
-    };
-    let target_dir = meta.target_directory.as_std_path();
-    let Some(pkg) = meta.root_package() else {
-        anyhow::bail!("Could not find root package");
-    };
-    checks::pre_benchmarking_checks(args.allow_dirty)?;
-    let config = config::load_from_cargo_toml()?;
-    let Some(mut profile) = config.profiles.get(&args.profile).cloned() else {
-        anyhow::bail!("Could not find harness profile `{}`", args.profile);
-    };
-    // Overwrite invocations and iterations
-    if let Some(invocations) = args.invocations {
-        profile.invocations = invocations;
+    let cli = Cli::parse_from(args);
+    match cli.command {
+        Commands::Run(args) => harness::harness_run(&args),
+        Commands::Plot(args) => plot::harness_plot(&args),
     }
-    if let Some(iterations) = args.iterations {
-        profile.iterations = iterations;
-    }
-    let run_id = generate_runid(&args.profile);
-    let log_dir = target_dir.join("harness").join("logs").join(&run_id);
-    crate::meta::dump_global_metadata(&mut std::io::stdout(), &run_id, &profile, &log_dir)?;
-    let mut harness = harness::Harness::new(pkg.name.clone(), profile);
-    harness.run(&log_dir, args.allow_dirty)?;
-    Ok(())
 }

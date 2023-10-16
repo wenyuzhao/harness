@@ -69,7 +69,7 @@ pub fn dump_global_metadata(
     writeln!(f, "os: {}", meta.os)?;
     writeln!(f, "kernel-version: {}", meta.kernel_version)?;
     writeln!(f, "host: {}", meta.host)?;
-    writeln!(f, "memory-size: {:.1} GB", meta.memory_size)?;
+    writeln!(f, "memory-size: {}", meta.memory_size)?;
     // env variable
     writeln!(f, "env:")?;
     for (k, v) in profile.env.iter() {

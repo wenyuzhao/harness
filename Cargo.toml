@@ -24,6 +24,8 @@ serde = { version = "1.0.188", features = ["derive"] }
 toml = "0.8.2"
 git_info = { git = "https://github.com/sagiegurari/git_info.git", rev = "3ec11fb6709ea7742652c8f11e4d4af90c971a0e" }
 sysinfo = "0.29.10"
+polars = { version = "0.33.2", features = ["lazy"] }
+tui = "0.19.0"
 
 [workspace]
 members = [".", "macros", "example-crate", "probes/perf"]

@@ -6,7 +6,7 @@ use crate::config;
 
 /// Benchmark running info
 #[derive(Debug)]
-pub struct Harness {
+struct Harness {
     /// Name of the current crate
     crate_name: String,
     /// Names of the benches to run
@@ -150,4 +150,54 @@ impl Harness {
         }
         Ok(())
     }
+}
+
+fn generate_runid(profile_name: &str) -> String {
+    let time = chrono::Local::now()
+        .format("%Y-%m-%d-%a-%H%M%S")
+        .to_string();
+    let host = crate::meta::get_hostname();
+    let run_id = format!("{}-{}-{}", profile_name, host, time);
+    run_id
+}
+
+pub fn harness_run(args: &crate::RunArgs) -> anyhow::Result<()> {
+    let Ok(meta) = MetadataCommand::new().manifest_path("./Cargo.toml").exec() else {
+        anyhow::bail!("Failed to get metadata from ./Cargo.toml");
+    };
+    let target_dir = meta.target_directory.as_std_path();
+    let Some(pkg) = meta.root_package() else {
+        anyhow::bail!("Could not find root package");
+    };
+    crate::checks::pre_benchmarking_checks(args.allow_dirty)?;
+    let config = crate::config::load_from_cargo_toml()?;
+    let Some(mut profile) = config.profiles.get(&args.profile).cloned() else {
+        anyhow::bail!("Could not find harness profile `{}`", args.profile);
+    };
+    // Overwrite invocations and iterations
+    if let Some(invocations) = args.invocations {
+        profile.invocations = invocations;
+    }
+    if let Some(iterations) = args.iterations {
+        profile.iterations = iterations;
+    }
+    let run_id = generate_runid(&args.profile);
+    let log_dir = target_dir.join("harness").join("logs").join(&run_id);
+    let latest_log_dir = target_dir.join("harness").join("logs").join("latest");
+    std::fs::create_dir_all(&log_dir)?;
+    if latest_log_dir.exists() {
+        if latest_log_dir.is_dir() && !latest_log_dir.is_symlink() {
+            std::fs::remove_dir(&latest_log_dir)?;
+        } else {
+            std::fs::remove_file(&latest_log_dir)?;
+        }
+    }
+    #[cfg(target_os = "windows")]
+    std::os::windows::fs::symlink_dir(&log_dir, latest_log_dir)?;
+    #[cfg(not(target_os = "windows"))]
+    std::os::unix::fs::symlink(&log_dir, latest_log_dir)?;
+    crate::meta::dump_global_metadata(&mut std::io::stdout(), &run_id, &profile, &log_dir)?;
+    let mut harness = Harness::new(pkg.name.clone(), profile);
+    harness.run(&log_dir, args.allow_dirty)?;
+    Ok(())
 }
