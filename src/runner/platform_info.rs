@@ -44,8 +44,11 @@ pub struct PlatformInfo {
     pub host: String,
     pub os: String,
     pub arch: String,
+    #[serde(rename = "kernel-version")]
     pub kernel_version: String,
+    #[serde(rename = "cpu-model")]
     pub cpu_model: String,
+    #[serde(rename = "cpu-frequency")]
     pub cpu_frequency: Vec<usize>,
     pub memory: usize,
     pub swap: usize,
@@ -56,6 +59,7 @@ pub struct PlatformInfo {
     pub pid: usize,
     pub rustc: String,
     #[cfg(target_os = "linux")]
+    #[serde(rename = "scaling-governor")]
     pub scaling_governor: Vec<String>,
 }
 
@@ -159,7 +163,7 @@ pub static PLATFORM_INFO: Lazy<PlatformInfo> = Lazy::new(|| {
         os: sys.long_os_version().unwrap_or(UNKNOWN.to_string()),
         arch: std::env::consts::ARCH.to_string(),
         kernel_version: sys.kernel_version().unwrap_or(UNKNOWN.to_string()),
-        cpu_model: sys.global_cpu_info().name().to_owned(),
+        cpu_model: sys.global_cpu_info().brand().to_owned(),
         cpu_frequency: sys.cpus().iter().map(|c| c.frequency() as usize).collect(),
         memory: sys.total_memory() as usize,
         swap: sys.total_swap() as usize,

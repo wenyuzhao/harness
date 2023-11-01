@@ -22,6 +22,7 @@ pub fn dump_global_metadata(
     )?;
     // dump to terminal
     writeln!(f, "RUNID: {}", profile_with_platform_info.runid)?;
+    writeln!(f, "LOGS: {}", log_dir.to_str().unwrap())?;
     Ok(())
 }
 
