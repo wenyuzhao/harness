@@ -136,15 +136,13 @@ fn get_scaling_governor() -> anyhow::Result<Vec<String>> {
     let mut governors = Vec::new();
     let mut sys = System::new_all();
     sys.refresh_all();
-    for path in std::fs::read_dir("/sys/devices/system/cpu/")? {
-        if let Ok(path) = path {
-            let path = path.path();
-            if path.is_dir() {
-                let path = path.join("cpufreq/scaling_governor");
-                if path.exists() {
-                    if let Ok(governor) = std::fs::read_to_string(path) {
-                        governors.push(governor.trim().to_owned());
-                    }
+    for path in (std::fs::read_dir("/sys/devices/system/cpu/")?).flatten() {
+        let path = path.path();
+        if path.is_dir() {
+            let path = path.join("cpufreq/scaling_governor");
+            if path.exists() {
+                if let Ok(governor) = std::fs::read_to_string(path) {
+                    governors.push(governor.trim().to_owned());
                 }
             }
         }

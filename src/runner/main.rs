@@ -46,8 +46,7 @@ static CMD_ARGS: Lazy<HarnessCmdArgs> = Lazy::new(|| {
     if args.len() > 1 && args[1] == "harness" {
         args = args[1..].to_vec();
     }
-    let args = HarnessCmdArgs::parse_from(args);
-    args
+    HarnessCmdArgs::parse_from(args)
 });
 
 fn main() -> anyhow::Result<()> {

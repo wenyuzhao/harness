@@ -4,7 +4,7 @@ use std::hint::black_box;
 #[harness::bench]
 #[derive(Default)]
 struct Push {
-    queue: example_crate::DefaultQueue<usize>,
+    queue: DefaultQueue<usize>,
     input_range: (usize, usize),
 }
 

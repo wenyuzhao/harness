@@ -51,7 +51,7 @@ impl Harness {
         log_dir: &Path,
         invocation: usize,
     ) -> anyhow::Result<()> {
-        std::fs::create_dir_all(&log_dir)?;
+        std::fs::create_dir_all(log_dir)?;
         let log_file = log_dir.join(format!("{}.{}.log", bench, varient_name));
         let outputs = OpenOptions::new()
             .write(true)
