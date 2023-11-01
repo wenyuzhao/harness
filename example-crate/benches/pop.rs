@@ -17,6 +17,7 @@ impl harness::Benchmark for Pop {
             queue.push_back(i);
         }
         self.queue = black_box(queue);
+        self.sum = 0;
     }
 
     fn iter(&mut self) {
@@ -31,6 +32,6 @@ impl harness::Benchmark for Pop {
             * (self.input_range.1 - self.input_range.0)
             / 2;
         println!("checksum: {}", self.sum);
-        assert_eq!(expected, expected);
+        assert_eq!(expected, self.sum);
     }
 }
