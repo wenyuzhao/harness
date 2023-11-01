@@ -6,6 +6,7 @@ mod checks;
 mod config;
 mod harness;
 mod meta;
+mod platform_info;
 
 #[derive(Parser, Debug)]
 pub struct HarnessCmdArgs {
@@ -27,7 +28,7 @@ fn generate_runid(profile_name: &str) -> String {
     let time = chrono::Local::now()
         .format("%Y-%m-%d-%a-%H%M%S")
         .to_string();
-    let host = crate::meta::get_hostname();
+    let host = crate::platform_info::PLATFORM_INFO.host.clone();
     let run_id = format!("{}-{}-{}", profile_name, host, time);
     run_id
 }

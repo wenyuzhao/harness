@@ -1,27 +1,12 @@
 use std::{collections::HashMap, io::Write, path::PathBuf, process::Command};
 
-use sysinfo::SystemExt;
+use crate::{
+    config::{self, Profile},
+    platform_info::ProfileWithPlatformInfo,
+};
 
-use crate::config::{self, Profile};
-
-fn get_git_hash() -> String {
-    let git_info = git_info::get();
-    let mut hash = git_info
-        .head
-        .last_commit_hash
-        .unwrap_or("unknown".to_owned());
-    if git_info.dirty.unwrap_or_default() {
-        hash += "-dirty";
-    }
-    hash
-}
-
-pub fn get_hostname() -> String {
-    let mut sys = sysinfo::System::new_all();
-    sys.refresh_all();
-    sys.host_name().unwrap_or("unknown".to_owned())
-}
-
+/// Dump metadata before running all benchmarks
+/// This include platform info, env variables, and current git commit that the profile is loaded from.
 pub fn dump_global_metadata(
     f: &mut impl Write,
     runid: &str,
@@ -30,57 +15,22 @@ pub fn dump_global_metadata(
 ) -> anyhow::Result<()> {
     // dump to file
     std::fs::create_dir_all(log_dir)?;
-    #[derive(serde::Serialize)]
-    struct ProfileWithExtraMeta<'a> {
-        #[serde(flatten)]
-        profile: &'a Profile,
-        runid: &'a str,
-        #[serde(rename = "profile-commit")]
-        profile_commit: String,
-        os: String,
-        #[serde(rename = "kernel-version")]
-        kernel_version: String,
-        #[serde(rename = "memory-size")]
-        memory_size: String,
-        host: String,
-    }
-    let mut sys = sysinfo::System::new_all();
-    sys.refresh_all();
-    let meta = ProfileWithExtraMeta {
-        profile,
-        runid,
-        profile_commit: get_git_hash(),
-        os: sys.long_os_version().unwrap_or_default(),
-        kernel_version: sys.kernel_version().unwrap_or("unknown".to_owned()),
-        memory_size: format!("{:.1} GB", sys.total_memory() as f32 / (1 << 30) as f32),
-        host: sys.host_name().unwrap_or("unknown".to_owned()),
-    };
-    std::fs::write(log_dir.join("config.toml"), toml::to_string(&meta)?)?;
+    let profile_with_platform_info = ProfileWithPlatformInfo::new(profile, runid.to_owned());
+    std::fs::write(
+        log_dir.join("config.toml"),
+        toml::to_string(&profile_with_platform_info)?,
+    )?;
     // dump to terminal
     writeln!(f, "---")?;
     // runid and log dir
-    writeln!(f, "runid: {}", meta.runid)?;
-    writeln!(
-        f,
-        "log-dir: {}",
-        log_dir.canonicalize()?.to_string_lossy().as_ref()
-    )?;
-    // machine and system info
-    writeln!(f, "os: {}", meta.os)?;
-    writeln!(f, "kernel-version: {}", meta.kernel_version)?;
-    writeln!(f, "host: {}", meta.host)?;
-    writeln!(f, "memory-size: {:.1} GB", meta.memory_size)?;
-    // env variable
-    writeln!(f, "env:")?;
-    for (k, v) in profile.env.iter() {
-        writeln!(f, "  {}: {}", k, v)?;
-    }
-    // git commit
-    writeln!(f, "profile-commit: {}", meta.profile_commit)?;
+    let s = serde_yaml::to_string(&profile_with_platform_info)?;
+    writeln!(f, "{}", s)?;
     writeln!(f, "---")?;
     Ok(())
 }
 
+/// Dump invocation-related metadata to the corresponding log file at the start of each invocation
+/// This include: env variables, command line args, cargo features, and git commit
 pub fn dump_metadata_for_single_invocation(
     f: &mut impl Write,
     cmd: &Command,
@@ -103,7 +53,7 @@ pub fn dump_metadata_for_single_invocation(
     // cargo features
     writeln!(f, "features: {}", variant.features.join(","))?;
     // git commit
-    writeln!(f, "commit: {}", get_git_hash())?;
+    writeln!(f, "commit: {}", ProfileWithPlatformInfo::get_git_hash())?;
     writeln!(f, "---")?;
     Ok(())
 }
