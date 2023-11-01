@@ -25,7 +25,6 @@ toml = "0.8.2"
 git_info = { git = "https://github.com/sagiegurari/git_info.git", rev = "3ec11fb6709ea7742652c8f11e4d4af90c971a0e" }
 sysinfo = "0.29.10"
 once_cell = "1.18.0"
-serde_yaml = "0.9.27"
 rustc_version = "0.4.0"
 
 [workspace]

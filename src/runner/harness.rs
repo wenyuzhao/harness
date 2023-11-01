@@ -49,7 +49,6 @@ impl Harness {
         variant: &config::BuildVariant,
         bench: &str,
         log_dir: &Path,
-        allow_dirty: bool,
         invocation: usize,
     ) -> anyhow::Result<()> {
         std::fs::create_dir_all(&log_dir)?;
@@ -87,9 +86,6 @@ impl Harness {
         if !profile.probes.is_empty() {
             cmd.args(["--probes".to_owned(), profile.probes.join(",")]);
         }
-        if allow_dirty {
-            cmd.arg("--allow-dirty");
-        }
         let mut envs = profile.env.clone();
         for (k, v) in &variant.env {
             envs.insert(k.clone(), v.clone());
@@ -111,7 +107,7 @@ impl Harness {
 
     /// Run all benchmarks with all build variants.
     /// Benchmarks are invoked one by one.
-    pub fn run(&mut self, log_dir: &Path, allow_dirty: bool) -> anyhow::Result<()> {
+    pub fn run(&mut self, log_dir: &Path) -> anyhow::Result<()> {
         self.collect_benches()?;
         for bench in &self.benches {
             print!("[{}] ", bench);
@@ -125,15 +121,8 @@ impl Harness {
                     assert!(index < 26);
                     const KEYS: &str = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
                     let key = KEYS.chars().nth(index).unwrap();
-                    let result = self.run_one(
-                        &self.profile,
-                        variant_name,
-                        variant,
-                        bench,
-                        log_dir,
-                        allow_dirty,
-                        i,
-                    );
+                    let result =
+                        self.run_one(&self.profile, variant_name, variant, bench, log_dir, i);
                     match result {
                         Ok(_) => {
                             print!("{}", key)

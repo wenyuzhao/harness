@@ -5,6 +5,7 @@ use serde::Serialize;
 use sysinfo::{CpuExt, System, SystemExt};
 
 use crate::config::Profile;
+use crate::CMD_ARGS;
 
 #[derive(Debug, Serialize)]
 pub struct ProfileWithPlatformInfo<'a> {
@@ -48,13 +49,64 @@ pub struct PlatformInfo {
     pub cpu_frequency: Vec<usize>,
     pub memory: usize,
     pub swap: usize,
-    pub users: usize,
+    #[cfg(target_os = "linux")]
+    pub users: Vec<String>,
     pub processes: usize,
     pub env: HashMap<String, String>,
     pub pid: usize,
     pub rustc: String,
     #[cfg(target_os = "linux")]
     pub scaling_governor: Vec<String>,
+}
+
+impl PlatformInfo {
+    fn dirty_git_worktree_check(&self) -> anyhow::Result<()> {
+        let git_info = git_info::get();
+        let Some(dirty) = git_info.dirty else {
+            anyhow::bail!("No git repo found");
+        };
+        if dirty {
+            if !CMD_ARGS.allow_dirty {
+                anyhow::bail!("Git worktree is dirty.");
+            }
+            eprintln!("🚨 WARNING: Git worktree is dirty.");
+        }
+        Ok(())
+    }
+    #[cfg(target_os = "linux")]
+    pub fn pre_benchmarking_checks(&self) -> anyhow::Result<()> {
+        // Check if the current git worktree is dirty
+        self.dirty_git_worktree_check()?;
+        // Check if the current user is the only one logged in
+        if self.users.len() > 1 {
+            let msg = format!("More than one user logged in: {}", self.users.join(", "));
+            if CMD_ARGS.allow_multi_user {
+                eprintln!("🚨 WARNING: {}", msg);
+            } else {
+                anyhow::bail!("{}", msg);
+            }
+        }
+        // Check if all the scaling governors are set to `performance`
+        if !self.scaling_governor.iter().all(|g| g == "performance") {
+            let msg = format!(
+                "Not all scaling governors are set to `performance`: [{}]",
+                self.scaling_governor.join(", ")
+            );
+            if CMD_ARGS.allow_any_scaling_governor {
+                eprintln!("🚨 WARNING: {}", msg);
+            } else {
+                anyhow::bail!("{}", msg);
+            }
+        }
+        Ok(())
+    }
+
+    #[cfg(not(target_os = "linux"))]
+    pub fn pre_benchmarking_checks2(&self) -> anyhow::Result<()> {
+        // Check if the current git worktree is dirty
+        self.dirty_git_worktree_check()?;
+        Ok(())
+    }
 }
 
 fn get_rustc_version() -> Option<String> {
@@ -64,6 +116,19 @@ fn get_rustc_version() -> Option<String> {
         vmeta.semver,
         format!("{:?}", vmeta.channel).to_lowercase()
     ))
+}
+
+#[cfg(target_os = "linux")]
+fn get_logged_in_users() -> anyhow::Result<Vec<String>> {
+    std::process::Command::new("users")
+        .output()
+        .map(|o| {
+            String::from_utf8_lossy(&o.stdout)
+                .split_whitespace()
+                .map(|s| s.to_owned())
+                .collect()
+        })
+        .map_err(|e| e.into())
 }
 
 #[cfg(target_os = "linux")]
@@ -100,11 +165,12 @@ pub static PLATFORM_INFO: Lazy<PlatformInfo> = Lazy::new(|| {
         cpu_frequency: sys.cpus().iter().map(|c| c.frequency() as usize).collect(),
         memory: sys.total_memory() as usize,
         swap: sys.total_swap() as usize,
-        users: sys.users().len(),
         processes: sys.processes().len(),
         env: std::env::vars().collect(),
         pid: std::process::id() as usize,
         rustc: get_rustc_version().unwrap_or_else(|| UNKNOWN.to_string()),
+        #[cfg(target_os = "linux")]
+        users: get_logged_in_users().unwrap_or_default(),
         #[cfg(target_os = "linux")]
         scaling_governor: get_scaling_governor().unwrap_or_default(),
     }

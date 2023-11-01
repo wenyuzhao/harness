@@ -21,11 +21,7 @@ pub fn dump_global_metadata(
         toml::to_string(&profile_with_platform_info)?,
     )?;
     // dump to terminal
-    writeln!(f, "---")?;
-    // runid and log dir
-    let s = serde_yaml::to_string(&profile_with_platform_info)?;
-    writeln!(f, "{}", s)?;
-    writeln!(f, "---")?;
+    writeln!(f, "RUNID: {}", profile_with_platform_info.runid)?;
     Ok(())
 }
 
