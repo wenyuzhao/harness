@@ -10,7 +10,7 @@
 4. Add `harness` to the project dependencies list: `cargo add harness`.
 5. Add two micro-benchmarks: [benches/push.rs](example-crate/benches/push.rs) and [benches/pop.rs](example-crate/benches/pop.rs).
 6. Register the benchmarks in Cargo.toml: [Cargo.toml#L21-L27](example-crate/Cargo.toml#L21-L27).
-7. Add a default benchmarking configuration: [Cargo.toml#L29-L35](example-crate/Cargo.toml#L29-L37).
+7. Add a default benchmarking configuration: [Cargo.toml#L29-L37](example-crate/Cargo.toml#L29-L37).
    - `invocations = 10`: Run each benchmark 10 times.
    - `iterations = 5`: In a single invocation, run the benchmarking code for 5 iterations. 1-4 are warmup iterations. Only results from the last iteration are reported.
    - `probes` A list of hooks/plugins for collecting extra data. We add `harness_perf` here to enable performance event counters (see `env.PERF_EVENTS` in the next line). Remember to add `harness-perf` to `[dev-dependencies]`.
