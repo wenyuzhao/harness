@@ -4,7 +4,7 @@ use once_cell::sync::Lazy;
 use serde::Serialize;
 use sysinfo::{CpuExt, System, SystemExt};
 
-use crate::{commands::run::RunArgs, config::Profile};
+use crate::config::Profile;
 
 #[derive(Debug, Serialize)]
 pub struct ProfileWithPlatformInfo<'a> {
@@ -60,57 +60,6 @@ pub struct PlatformInfo {
     #[cfg(target_os = "linux")]
     #[serde(rename = "scaling-governor")]
     pub scaling_governor: Vec<String>,
-}
-
-impl PlatformInfo {
-    fn dirty_git_worktree_check(&self, args: &RunArgs) -> anyhow::Result<()> {
-        let git_info = git_info::get();
-        let Some(dirty) = git_info.dirty else {
-            anyhow::bail!("No git repo found");
-        };
-        if dirty {
-            if !args.allow_dirty {
-                anyhow::bail!("Git worktree is dirty.");
-            }
-            eprintln!("🚨 WARNING: Git worktree is dirty.");
-        }
-        Ok(())
-    }
-
-    #[cfg(target_os = "linux")]
-    pub fn pre_benchmarking_checks(&self, args: &RunArgs) -> anyhow::Result<()> {
-        // Check if the current git worktree is dirty
-        self.dirty_git_worktree_check(args)?;
-        // Check if the current user is the only one logged in
-        if self.users.len() > 1 {
-            let msg = format!("More than one user logged in: {}", self.users.join(", "));
-            if args.allow_multi_user {
-                eprintln!("🚨 WARNING: {}", msg);
-            } else {
-                anyhow::bail!("{}", msg);
-            }
-        }
-        // Check if all the scaling governors are set to `performance`
-        if !self.scaling_governor.iter().all(|g| g == "performance") {
-            let msg = format!(
-                "Not all scaling governors are set to `performance`: [{}]",
-                self.scaling_governor.join(", ")
-            );
-            if args.allow_any_scaling_governor {
-                eprintln!("🚨 WARNING: {}", msg);
-            } else {
-                anyhow::bail!("{}", msg);
-            }
-        }
-        Ok(())
-    }
-
-    #[cfg(not(target_os = "linux"))]
-    pub fn pre_benchmarking_checks2(&self, args: &RunArgs) -> anyhow::Result<()> {
-        // Check if the current git worktree is dirty
-        self.dirty_git_worktree_check(args)?;
-        Ok(())
-    }
 }
 
 fn get_rustc_version() -> Option<String> {
