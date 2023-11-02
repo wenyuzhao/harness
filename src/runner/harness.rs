@@ -49,10 +49,9 @@ impl Harness {
         variant: &config::BuildVariant,
         bench: &str,
         log_dir: &Path,
-        allow_dirty: bool,
         invocation: usize,
     ) -> anyhow::Result<()> {
-        std::fs::create_dir_all(&log_dir)?;
+        std::fs::create_dir_all(log_dir)?;
         let log_file = log_dir.join(format!("{}.{}.log", bench, varient_name));
         let outputs = OpenOptions::new()
             .write(true)
@@ -87,9 +86,6 @@ impl Harness {
         if !profile.probes.is_empty() {
             cmd.args(["--probes".to_owned(), profile.probes.join(",")]);
         }
-        if allow_dirty {
-            cmd.arg("--allow-dirty");
-        }
         let mut envs = profile.env.clone();
         for (k, v) in &variant.env {
             envs.insert(k.clone(), v.clone());
@@ -111,7 +107,7 @@ impl Harness {
 
     /// Run all benchmarks with all build variants.
     /// Benchmarks are invoked one by one.
-    pub fn run(&mut self, log_dir: &Path, allow_dirty: bool) -> anyhow::Result<()> {
+    pub fn run(&mut self, log_dir: &Path) -> anyhow::Result<()> {
         self.collect_benches()?;
         for bench in &self.benches {
             print!("[{}] ", bench);
@@ -125,15 +121,8 @@ impl Harness {
                     assert!(index < 26);
                     const KEYS: &str = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
                     let key = KEYS.chars().nth(index).unwrap();
-                    let result = self.run_one(
-                        &self.profile,
-                        variant_name,
-                        variant,
-                        bench,
-                        log_dir,
-                        allow_dirty,
-                        i,
-                    );
+                    let result =
+                        self.run_one(&self.profile, variant_name, variant, bench, log_dir, i);
                     match result {
                         Ok(_) => {
                             print!("{}", key)
@@ -156,7 +145,7 @@ fn generate_runid(profile_name: &str) -> String {
     let time = chrono::Local::now()
         .format("%Y-%m-%d-%a-%H%M%S")
         .to_string();
-    let host = crate::meta::get_hostname();
+    let host = crate::platform_info::PLATFORM_INFO.host.clone();
     let run_id = format!("{}-{}-{}", profile_name, host, time);
     run_id
 }
@@ -169,8 +158,8 @@ pub fn harness_run(args: &crate::RunArgs) -> anyhow::Result<()> {
     let Some(pkg) = meta.root_package() else {
         anyhow::bail!("Could not find root package");
     };
-    crate::checks::pre_benchmarking_checks(args.allow_dirty)?;
-    let config = crate::config::load_from_cargo_toml()?;
+    crate::platform_info::PLATFORM_INFO.pre_benchmarking_checks()?;
+    let config = config::load_from_cargo_toml()?;
     let Some(mut profile) = config.profiles.get(&args.profile).cloned() else {
         anyhow::bail!("Could not find harness profile `{}`", args.profile);
     };
@@ -198,6 +187,6 @@ pub fn harness_run(args: &crate::RunArgs) -> anyhow::Result<()> {
     std::os::unix::fs::symlink(&log_dir, latest_log_dir)?;
     crate::meta::dump_global_metadata(&mut std::io::stdout(), &run_id, &profile, &log_dir)?;
     let mut harness = Harness::new(pkg.name.clone(), profile);
-    harness.run(&log_dir, args.allow_dirty)?;
+    harness.run(&log_dir)?;
     Ok(())
 }

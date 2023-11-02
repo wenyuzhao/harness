@@ -14,12 +14,16 @@ harness = { path = ".." }
 harness-perf = { path = "../probes/perf" }
 
 [features]
-default = []
-node_enqueuing = []
-edge_enqueuing = []
+default = ["vec_deque"]
+vec_deque = []
+linked_list = []
 
 [[bench]]
-name = "trace"
+name = "push"
+harness = false
+
+[[bench]]
+name = "pop"
 harness = false
 
 [package.metadata.harness.profiles.default]
@@ -29,5 +33,5 @@ probes = ["harness_perf"]
 env = { PERF_EVENTS = "PERF_COUNT_HW_CPU_CYCLES,PERF_COUNT_HW_INSTRUCTIONS,PERF_COUNT_HW_CACHE_L1D:MISS,PERF_COUNT_HW_CACHE_DTLB:MISS" }
 
 [package.metadata.harness.profiles.default.build-variants]
-node_enqueuing = { features = ["node_enqueuing"] }
-edge_enqueuing = { features = ["edge_enqueuing"] }
+vec_deque = { features = ["vec_deque"], default-features = false }
+linked_list = { features = ["linked_list"], default-features = false }

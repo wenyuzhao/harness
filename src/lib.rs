@@ -1,6 +1,5 @@
 mod bencher;
 mod benchmark;
-mod checks;
 pub mod probe;
 
 pub use benchmark::Benchmark;
