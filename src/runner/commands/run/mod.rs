@@ -11,6 +11,7 @@ use crate::{
 mod bench_runner;
 mod checks;
 
+/// Run all the benchmarks
 #[derive(Parser)]
 pub struct RunArgs {
     #[arg(short = 'n', long)]

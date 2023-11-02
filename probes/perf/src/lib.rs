@@ -19,6 +19,7 @@ impl Probe for PerfEventProbe {}
 
 #[cfg(target_os = "linux")]
 impl Probe for PerfEventProbe {
+    /// Initialize the probe before benchmarking.
     fn init(&mut self) {
         self.perfmon
             .initialize()
@@ -40,6 +41,7 @@ impl Probe for PerfEventProbe {
         }
     }
 
+    /// Prepare recording at the start of the timing iteration.
     fn harness_begin(&mut self) {
         for e in &mut self.events {
             e.reset().expect("Failed to reset perf evet");
@@ -47,12 +49,14 @@ impl Probe for PerfEventProbe {
         }
     }
 
+    /// Finish timing iteration. Disable recording.
     fn harness_end(&mut self) {
         for e in &mut self.events {
             e.disable().expect("Failed to disable perf evet");
         }
     }
 
+    /// Report data after the timing iteration.
     fn report_values(&mut self) -> HashMap<String, f32> {
         let mut values = HashMap::new();
         for (i, e) in self.events.iter().enumerate() {

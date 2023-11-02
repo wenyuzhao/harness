@@ -10,6 +10,7 @@ struct Pop {
 }
 
 impl harness::Benchmark for Pop {
+    /// Prepare the benchmark before each iteration.
     fn prologue(&mut self) {
         self.input_range = (0, 10000000);
         let mut queue = DefaultQueue::default();
@@ -20,6 +21,7 @@ impl harness::Benchmark for Pop {
         self.sum = 0;
     }
 
+    /// Run one benchmark iteration.
     fn iter(&mut self) {
         let queue = std::mem::take(&mut self.queue);
         for v in queue.into_iter() {
@@ -27,6 +29,7 @@ impl harness::Benchmark for Pop {
         }
     }
 
+    /// Clean up the benchmark after each iteration.
     fn epilogue(&mut self) {
         let expected = (self.input_range.0 + self.input_range.1 - 1)
             * (self.input_range.1 - self.input_range.0)

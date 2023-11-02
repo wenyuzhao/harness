@@ -5,6 +5,7 @@ mod commands;
 mod config;
 mod platform_info;
 
+/// Benchmark harness CLI
 #[derive(Parser)]
 pub struct Cli {
     #[command(subcommand)]
@@ -17,6 +18,7 @@ pub enum Commands {
     Plot(PlotArgs),
 }
 
+/// Plot benchmark results
 #[derive(Parser)]
 pub struct PlotArgs {}
 
