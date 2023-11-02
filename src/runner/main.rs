@@ -1,6 +1,7 @@
 use clap::{Parser, Subcommand};
 use once_cell::sync::Lazy;
 
+mod commands;
 mod config;
 mod harness;
 mod meta;
@@ -14,30 +15,8 @@ pub struct Cli {
 
 #[derive(Subcommand)]
 pub enum Commands {
-    Run(RunArgs),
+    Run(commands::run::RunArgs),
     Plot(PlotArgs),
-}
-
-#[derive(Parser)]
-pub struct RunArgs {
-    #[arg(short = 'n', long)]
-    /// Number of iterations
-    pub iterations: Option<usize>,
-    #[arg(short = 'i', long)]
-    /// Number of invocations
-    pub invocations: Option<usize>,
-    #[arg(long, default_value = "default")]
-    /// Benchmarking profile
-    pub profile: String,
-    #[arg(long, default_value = "false")]
-    /// Allow dirty working directories
-    pub allow_dirty: bool,
-    #[arg(long, default_value = "false")]
-    /// (Linux only) Allow benchmarking even when multiple users are logged in
-    pub allow_multi_user: bool,
-    /// (Linux only) Allow any scaling governor value, instead of only `performance`
-    #[arg(long, default_value = "false")]
-    pub allow_any_scaling_governor: bool,
 }
 
 #[derive(Parser)]
@@ -54,14 +33,9 @@ static CMD_ARGS: Lazy<Cli> = Lazy::new(|| {
     Cli::parse_from(args)
 });
 
-static RUN_ARGS: Lazy<&'static RunArgs> = Lazy::new(|| match &CMD_ARGS.command {
-    Commands::Run(args) => args,
-    _ => unreachable!(),
-});
-
 fn main() -> anyhow::Result<()> {
     match &CMD_ARGS.command {
-        Commands::Run(args) => harness::harness_run(&args),
+        Commands::Run(cmd) => cmd.run(),
         Commands::Plot(_args) => unimplemented!(),
     }
 }
