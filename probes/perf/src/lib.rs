@@ -44,8 +44,8 @@ impl Probe for PerfEventProbe {
     /// Prepare recording at the start of the timing iteration.
     fn harness_begin(&mut self) {
         for e in &mut self.events {
-            e.reset().expect("Failed to reset perf evet");
-            e.enable().expect("Failed to enable perf evet");
+            e.reset().expect("Failed to reset perf event");
+            e.enable().expect("Failed to enable perf event");
         }
     }
 
