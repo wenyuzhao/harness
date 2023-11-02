@@ -6,7 +6,7 @@ use crate::config;
 
 /// Benchmark running info
 #[derive(Debug)]
-pub struct Harness {
+pub struct BenchRunner {
     /// Name of the current crate
     crate_name: String,
     /// Names of the benches to run
@@ -15,7 +15,7 @@ pub struct Harness {
     profile: config::Profile,
 }
 
-impl Harness {
+impl BenchRunner {
     pub fn new(crate_name: String, profile: config::Profile) -> Self {
         Self {
             crate_name,

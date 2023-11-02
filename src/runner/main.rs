@@ -3,7 +3,6 @@ use once_cell::sync::Lazy;
 
 mod commands;
 mod config;
-mod harness;
 mod meta;
 mod platform_info;
 mod plot;
