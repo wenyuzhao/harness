@@ -1,8 +1,8 @@
-use std::{fs::OpenOptions, io, io::Write, path::Path, process::Command};
+use std::{collections::HashMap, fs::OpenOptions, io, io::Write, path::Path, process::Command};
 
 use cargo_metadata::MetadataCommand;
 
-use crate::config;
+use crate::{config, platform_info::ProfileWithPlatformInfo};
 
 /// Benchmark running info
 #[derive(Debug)]
@@ -38,6 +38,36 @@ impl BenchRunner {
                 self.benches.push(target.name.clone());
             }
         }
+        Ok(())
+    }
+
+    /// Dump invocation-related metadata to the corresponding log file at the start of each invocation
+    /// This include: env variables, command line args, cargo features, and git commit
+    fn dump_metadata_for_single_invocation(
+        &self,
+        f: &mut impl Write,
+        cmd: &Command,
+        variant: &config::BuildVariant,
+        envs: &HashMap<String, String>,
+    ) -> anyhow::Result<()> {
+        writeln!(f, "---")?;
+        // command line args
+        let prog = cmd.get_program().to_string_lossy();
+        let args = cmd
+            .get_args()
+            .map(|a| a.to_string_lossy())
+            .collect::<Vec<_>>();
+        writeln!(f, "command: {} {}", prog.as_ref(), args.join(" "))?;
+        // env variable
+        writeln!(f, "env:")?;
+        for (k, v) in envs.iter() {
+            writeln!(f, "  {}: {}", k, v)?;
+        }
+        // cargo features
+        writeln!(f, "features: {}", variant.features.join(","))?;
+        // git commit
+        writeln!(f, "commit: {}", ProfileWithPlatformInfo::get_git_hash())?;
+        writeln!(f, "---")?;
         Ok(())
     }
 
@@ -91,7 +121,7 @@ impl BenchRunner {
             envs.insert(k.clone(), v.clone());
         }
         cmd.envs(&envs);
-        crate::meta::dump_metadata_for_single_invocation(&mut outputs2, &cmd, variant, &envs)?;
+        self.dump_metadata_for_single_invocation(&mut outputs2, &cmd, variant, &envs)?;
         let out = cmd.status()?;
         writeln!(outputs2, "\n\n\n")?;
         if out.success() {

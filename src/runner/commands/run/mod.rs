@@ -81,6 +81,8 @@ impl RunArgs {
         Ok(log_dir)
     }
 
+    /// Dump metadata before running all benchmarks
+    /// This include platform info, env variables, and current git commit that the profile is loaded from.
     fn dump_metadata(
         &self,
         runid: &str,
