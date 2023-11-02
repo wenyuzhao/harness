@@ -1,4 +1,3 @@
-use cargo_metadata::MetadataCommand;
 use clap::{Parser, Subcommand};
 use once_cell::sync::Lazy;
 
@@ -67,7 +66,7 @@ static RUN_ARGS: Lazy<&'static RunArgs> = Lazy::new(|| match &CMD_ARGS.command {
     _ => unreachable!(),
 });
 
-fn main() -> anyhow::Result<()> { 
+fn main() -> anyhow::Result<()> {
     match &CMD_ARGS.command {
         Commands::Run(args) => harness::harness_run(&args),
         Commands::Plot(args) => plot::harness_plot(&args),
