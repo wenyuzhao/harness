@@ -52,7 +52,7 @@ impl Probe for PerfEventProbe {
     /// Finish timing iteration. Disable recording.
     fn harness_end(&mut self) {
         for e in &mut self.events {
-            e.disable().expect("Failed to disable perf evet");
+            e.disable().expect("Failed to disable perf event");
         }
     }
 
