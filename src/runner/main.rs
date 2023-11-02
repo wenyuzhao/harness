@@ -1,5 +1,4 @@
-use cargo_metadata::MetadataCommand;
-use clap::Parser;
+use clap::{Parser, Subcommand};
 use once_cell::sync::Lazy;
 
 mod config;
@@ -7,8 +6,20 @@ mod harness;
 mod meta;
 mod platform_info;
 
-#[derive(Parser, Debug)]
-pub struct HarnessCmdArgs {
+#[derive(Parser)]
+pub struct Cli {
+    #[command(subcommand)]
+    command: Commands,
+}
+
+#[derive(Subcommand)]
+pub enum Commands {
+    Run(RunArgs),
+    Plot(PlotArgs),
+}
+
+#[derive(Parser)]
+pub struct RunArgs {
     #[arg(short = 'n', long)]
     /// Number of iterations
     pub iterations: Option<usize>,
@@ -29,16 +40,10 @@ pub struct HarnessCmdArgs {
     pub allow_any_scaling_governor: bool,
 }
 
-fn generate_runid(profile_name: &str) -> String {
-    let time = chrono::Local::now()
-        .format("%Y-%m-%d-%a-%H%M%S")
-        .to_string();
-    let host = crate::platform_info::PLATFORM_INFO.host.clone();
-    let run_id = format!("{}-{}-{}", profile_name, host, time);
-    run_id
-}
+#[derive(Parser)]
+pub struct PlotArgs {}
 
-static CMD_ARGS: Lazy<HarnessCmdArgs> = Lazy::new(|| {
+static CMD_ARGS: Lazy<Cli> = Lazy::new(|| {
     if std::env::var("RUST_LOG").is_err() {
         std::env::set_var("RUST_LOG", "info")
     }
@@ -46,33 +51,17 @@ static CMD_ARGS: Lazy<HarnessCmdArgs> = Lazy::new(|| {
     if args.len() > 1 && args[1] == "harness" {
         args = args[1..].to_vec();
     }
-    HarnessCmdArgs::parse_from(args)
+    Cli::parse_from(args)
+});
+
+static RUN_ARGS: Lazy<&'static RunArgs> = Lazy::new(|| match &CMD_ARGS.command {
+    Commands::Run(args) => args,
+    _ => unreachable!(),
 });
 
 fn main() -> anyhow::Result<()> {
-    let Ok(meta) = MetadataCommand::new().manifest_path("./Cargo.toml").exec() else {
-        anyhow::bail!("Failed to get metadata from ./Cargo.toml");
-    };
-    let target_dir = meta.target_directory.as_std_path();
-    let Some(pkg) = meta.root_package() else {
-        anyhow::bail!("Could not find root package");
-    };
-    crate::platform_info::PLATFORM_INFO.pre_benchmarking_checks()?;
-    let config = config::load_from_cargo_toml()?;
-    let Some(mut profile) = config.profiles.get(&CMD_ARGS.profile).cloned() else {
-        anyhow::bail!("Could not find harness profile `{}`", CMD_ARGS.profile);
-    };
-    // Overwrite invocations and iterations
-    if let Some(invocations) = CMD_ARGS.invocations {
-        profile.invocations = invocations;
+    match &CMD_ARGS.command {
+        Commands::Run(args) => harness::harness_run(&args),
+        Commands::Plot(_args) => unimplemented!(),
     }
-    if let Some(iterations) = CMD_ARGS.iterations {
-        profile.iterations = iterations;
-    }
-    let run_id = generate_runid(&CMD_ARGS.profile);
-    let log_dir = target_dir.join("harness").join("logs").join(&run_id);
-    crate::meta::dump_global_metadata(&mut std::io::stdout(), &run_id, &profile, &log_dir)?;
-    let mut harness = harness::Harness::new(pkg.name.clone(), profile);
-    harness.run(&log_dir)?;
-    Ok(())
 }

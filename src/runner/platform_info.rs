@@ -5,7 +5,7 @@ use serde::Serialize;
 use sysinfo::{CpuExt, System, SystemExt};
 
 use crate::config::Profile;
-use crate::CMD_ARGS;
+use crate::RUN_ARGS;
 
 #[derive(Debug, Serialize)]
 pub struct ProfileWithPlatformInfo<'a> {
@@ -70,7 +70,7 @@ impl PlatformInfo {
             anyhow::bail!("No git repo found");
         };
         if dirty {
-            if !CMD_ARGS.allow_dirty {
+            if !RUN_ARGS.allow_dirty {
                 anyhow::bail!("Git worktree is dirty.");
             }
             eprintln!("🚨 WARNING: Git worktree is dirty.");
@@ -84,7 +84,7 @@ impl PlatformInfo {
         // Check if the current user is the only one logged in
         if self.users.len() > 1 {
             let msg = format!("More than one user logged in: {}", self.users.join(", "));
-            if CMD_ARGS.allow_multi_user {
+            if RUN_ARGS.allow_multi_user {
                 eprintln!("🚨 WARNING: {}", msg);
             } else {
                 anyhow::bail!("{}", msg);
@@ -96,7 +96,7 @@ impl PlatformInfo {
                 "Not all scaling governors are set to `performance`: [{}]",
                 self.scaling_governor.join(", ")
             );
-            if CMD_ARGS.allow_any_scaling_governor {
+            if RUN_ARGS.allow_any_scaling_governor {
                 eprintln!("🚨 WARNING: {}", msg);
             } else {
                 anyhow::bail!("{}", msg);
