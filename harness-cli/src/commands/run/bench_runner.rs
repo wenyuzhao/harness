@@ -197,7 +197,7 @@ impl<'a> BenchRunner<'a> {
                             print!("{}", key.green())
                         }
                         Err(_) => {
-                            print!("{}", ".".red())
+                            print!("{}", "✘".red())
                         }
                     }
                     io::stdout().flush()?;
