@@ -14,6 +14,9 @@ mod printer;
 pub struct ReportArgs {
     /// The run id to report. Default to the latest run.
     pub run_id: Option<String>,
+    /// The baseline build name to compare with.
+    #[clap(long)]
+    pub baseline: Option<String>,
 }
 
 struct CrateInfo {
@@ -63,7 +66,12 @@ impl ReportArgs {
         // Mean over all invocations, group by [bench, build]
         let bm_df = data::mean_over_invocations(&raw_df)?;
         // Mean and geomean over all benchmarks, group by builds
-        let overall_df = data::geomean_over_benchmarks(&raw_df)?;
+        let summary_df = data::geomean_over_benchmarks(&raw_df)?;
+        let normed_summary_df = if let Some(baseline) = &self.baseline {
+            Some(data::normalize(&summary_df, baseline)?)
+        } else {
+            None
+        };
         // Print results
         let mut printer = printer::MarkdownPrinter::new();
         printer.add(format!(
@@ -95,7 +103,14 @@ impl ReportArgs {
         printer.add("\n## Mean Over All Invocations\n\n");
         printer.add_dataframe(&bm_df);
         printer.add("\n## Summary\n\n");
-        printer.add_dataframe(&overall_df);
+        printer.add_dataframe(&summary_df);
+        if let Some(df) = normed_summary_df {
+            printer.add(format!(
+                "\n## Summary (Normalized to: `{}`)\n\n",
+                self.baseline.as_ref().unwrap()
+            ));
+            printer.add_dataframe(&df);
+        }
         printer.dump();
         Ok(())
     }

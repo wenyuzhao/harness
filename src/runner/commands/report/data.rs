@@ -32,3 +32,17 @@ pub fn geomean_over_benchmarks(df: &DataFrame) -> anyhow::Result<DataFrame> {
         .sort_by_exprs([col("build")], [false, false], false, true)
         .collect()?)
 }
+
+pub fn normalize(df: &DataFrame, baseline: &str) -> anyhow::Result<DataFrame> {
+    let row_index = df
+        .column("build")?
+        .iter()
+        .position(|x| x.get_str() == Some(baseline))
+        .unwrap();
+    Ok(df
+        .clone()
+        .lazy()
+        .with_column(col("mean") / (col("mean").slice(row_index as i32, 1).first()))
+        .with_column(col("geomean") / (col("geomean").slice(row_index as i32, 1).first()))
+        .collect()?)
+}
