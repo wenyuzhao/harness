@@ -10,7 +10,7 @@ publish = false
 rand = { version = "0.8.5", features = ["small_rng"] }
 
 [dev-dependencies]
-harness = { path = ".." }
+harness = { path = "../harness" }
 harness-perf = { path = "../probes/perf" }
 
 [features]

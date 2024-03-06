@@ -10,7 +10,7 @@ description = "cargo-harness probe for preporting linux perf-event counter value
 crate-type = ["cdylib"]
 
 [dependencies]
-harness = { path = "../.." }
+harness = { path = "../../harness" }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 pfm = "0.1.0"
