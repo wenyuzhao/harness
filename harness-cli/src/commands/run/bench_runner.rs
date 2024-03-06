@@ -187,8 +187,8 @@ impl<'a> BenchRunner<'a> {
                 for (index, (variant_name, variant)) in
                     self.run.profile.build_variants.iter().enumerate()
                 {
-                    assert!(index < 26);
                     const KEYS: &str = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+                    assert!(index < KEYS.len(), "Too many builds!");
                     let key = KEYS.chars().nth(index).unwrap().to_string();
                     let result =
                         self.run_one(&self.run.profile, variant_name, variant, bench, log_dir, i);
