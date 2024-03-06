@@ -166,32 +166,38 @@ impl<'a> BenchRunner<'a> {
         print_md!("Please run `cargo harness report` to view results.\n");
     }
 
+    fn max_bench_name_len(&self) -> usize {
+        self.benches.iter().map(|b| b.len()).max().unwrap()
+    }
+
     /// Run all benchmarks with all build variants.
     /// Benchmarks are invoked one by one.
     pub fn run(&mut self, log_dir: &Path) -> anyhow::Result<()> {
         self.logdir = Some(log_dir.to_owned());
         self.collect_benches()?;
         self.print_before_run();
+        let name_len = self.max_bench_name_len() + 3;
         for bench in &self.benches {
-            print!("[{}] ", bench);
+            print!("{}", bench.blue().bold());
+            (0..name_len - bench.len()).for_each(|_| print!(" "));
             io::stdout().flush()?;
             for i in 0..self.run.profile.invocations {
-                print!("{}", i);
+                print!("{}", format!("{}", i).bold().blue().italic());
                 io::stdout().flush()?;
                 for (index, (variant_name, variant)) in
                     self.run.profile.build_variants.iter().enumerate()
                 {
                     assert!(index < 26);
                     const KEYS: &str = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
-                    let key = KEYS.chars().nth(index).unwrap();
+                    let key = KEYS.chars().nth(index).unwrap().to_string();
                     let result =
                         self.run_one(&self.run.profile, variant_name, variant, bench, log_dir, i);
                     match result {
                         Ok(_) => {
-                            print!("{}", key)
+                            print!("{}", key.green())
                         }
                         Err(_) => {
-                            print!(".")
+                            print!("{}", ".".red())
                         }
                     }
                     io::stdout().flush()?;
