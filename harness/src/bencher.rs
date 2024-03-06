@@ -37,8 +37,8 @@ pub struct BenchArgs {
     pub output_csv: Option<PathBuf>,
     #[arg(long)]
     #[doc(hidden)]
-    /// Specify current build varient name
-    pub current_build_variant: Option<String>,
+    /// Specify current build name
+    pub current_build: Option<String>,
 }
 
 pub struct Bencher {
@@ -158,7 +158,7 @@ impl SingleBenchmarkRunner {
             &name,
             args.output_csv.as_ref(),
             args.current_invocation,
-            args.current_build_variant.as_ref(),
+            args.current_build.as_ref(),
         );
         Ok(())
     }

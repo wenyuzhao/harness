@@ -56,7 +56,7 @@ impl<'a> BenchRunner<'a> {
         &self,
         f: &mut impl Write,
         cmd: &Command,
-        variant: &config::BuildVariant,
+        build: &config::BuildConfig,
         envs: &HashMap<String, String>,
     ) -> anyhow::Result<()> {
         writeln!(f, "---")?;
@@ -73,25 +73,25 @@ impl<'a> BenchRunner<'a> {
             writeln!(f, "  {}: {}", k, v)?;
         }
         // cargo features
-        writeln!(f, "features: {}", variant.features.join(","))?;
+        writeln!(f, "features: {}", build.features.join(","))?;
         // git commit
         writeln!(f, "commit: {}", RunInfo::get_git_hash())?;
         writeln!(f, "---")?;
         Ok(())
     }
 
-    /// Run one benchmark with a build variant, for N iterations.
+    /// Run one benchmark with one build, for N iterations.
     fn run_one(
         &self,
         profile: &config::Profile,
-        varient_name: &str,
-        variant: &config::BuildVariant,
+        build_name: &str,
+        build: &config::BuildConfig,
         bench: &str,
         log_dir: &Path,
         invocation: usize,
     ) -> anyhow::Result<()> {
         std::fs::create_dir_all(log_dir)?;
-        let log_file = log_dir.join(format!("{}.{}.log", bench, varient_name));
+        let log_file = log_dir.join(format!("{}.{}.log", bench, build_name));
         let outputs = OpenOptions::new()
             .write(true)
             .append(true)
@@ -104,8 +104,8 @@ impl<'a> BenchRunner<'a> {
             .stderr(errors)
             .args(["bench", "--bench", bench])
             .arg("--features")
-            .arg(variant.features.join(" "))
-            .args(if !variant.default_features {
+            .arg(build.features.join(" "))
+            .args(if !build.default_features {
                 &["--no-default-features"] as &[&str]
             } else {
                 &[] as &[&str]
@@ -120,26 +120,26 @@ impl<'a> BenchRunner<'a> {
             .arg(format!("{invocation}"))
             .arg("--output-csv")
             .arg(log_dir.join("results.csv"))
-            .arg("--current-build-variant")
-            .arg(varient_name);
+            .arg("--current-build")
+            .arg(build_name);
         if !profile.probes.is_empty() {
             cmd.args(["--probes".to_owned(), profile.probes.join(",")]);
         }
         let mut envs = profile.env.clone();
-        for (k, v) in &variant.env {
+        for (k, v) in &build.env {
             envs.insert(k.clone(), v.clone());
         }
         cmd.envs(&envs);
-        self.dump_metadata_for_single_invocation(&mut outputs2, &cmd, variant, &envs)?;
+        self.dump_metadata_for_single_invocation(&mut outputs2, &cmd, build, &envs)?;
         let out = cmd.status()?;
         writeln!(outputs2, "\n\n\n")?;
         if out.success() {
             Ok(())
         } else {
             Err(anyhow::anyhow!(
-                "Failed to run bench `{}` with variant {:?}",
+                "Failed to run bench `{}` with build {:?}",
                 bench,
-                variant
+                build
             ))
         }
     }
@@ -151,7 +151,7 @@ impl<'a> BenchRunner<'a> {
             self.logdir.as_ref().unwrap().to_str().unwrap()
         );
         print_md!("* benchmarks: `{}`", self.benches.len());
-        print_md!("* builds: `{}`", self.run.profile.build_variants.len());
+        print_md!("* builds: `{}`", self.run.profile.builds.len());
         print_md!("* invocations: `{}`", self.run.profile.invocations);
         print_md!("* iterations: `{}`", self.run.profile.iterations);
         println!("");
@@ -170,7 +170,7 @@ impl<'a> BenchRunner<'a> {
         self.benches.iter().map(|b| b.len()).max().unwrap()
     }
 
-    /// Run all benchmarks with all build variants.
+    /// Run all benchmarks with all builds.
     /// Benchmarks are invoked one by one.
     pub fn run(&mut self, log_dir: &Path) -> anyhow::Result<()> {
         self.logdir = Some(log_dir.to_owned());
@@ -184,14 +184,12 @@ impl<'a> BenchRunner<'a> {
             for i in 0..self.run.profile.invocations {
                 print!("{}", format!("{}", i).bold().blue().italic());
                 io::stdout().flush()?;
-                for (index, (variant_name, variant)) in
-                    self.run.profile.build_variants.iter().enumerate()
-                {
+                for (index, (build_name, build)) in self.run.profile.builds.iter().enumerate() {
                     const KEYS: &str = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
                     assert!(index < KEYS.len(), "Too many builds!");
                     let key = KEYS.chars().nth(index).unwrap().to_string();
                     let result =
-                        self.run_one(&self.run.profile, variant_name, variant, bench, log_dir, i);
+                        self.run_one(&self.run.profile, build_name, build, bench, log_dir, i);
                     match result {
                         Ok(_) => {
                             print!("{}", key.green())

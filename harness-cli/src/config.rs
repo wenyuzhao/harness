@@ -38,8 +38,7 @@ pub struct Profile {
     pub probes: Vec<String>,
     #[serde(default)]
     pub env: HashMap<String, String>,
-    #[serde(rename = "build-variants")]
-    pub build_variants: HashMap<String, BuildVariant>,
+    pub builds: HashMap<String, BuildConfig>,
     /// Number of iterations
     #[serde(default = "one")]
     pub iterations: usize,
@@ -53,7 +52,7 @@ fn default_true() -> bool {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct BuildVariant {
+pub struct BuildConfig {
     #[serde(default)]
     pub features: Vec<String>,
     #[serde(default = "default_true", rename = "default-features")]

@@ -127,7 +127,7 @@ impl ProbeManager {
         name: &str,
         csv: Option<&PathBuf>,
         invocation: Option<usize>,
-        build_variant: Option<&String>,
+        build: Option<&String>,
     ) {
         eprintln!(
             "============================ Harness Statistics Totals ============================"
@@ -154,12 +154,7 @@ impl ProbeManager {
                 headers += "\n";
                 std::fs::write(csv, headers).unwrap();
             }
-            let mut record = format!(
-                "{},{},{}",
-                name,
-                build_variant.unwrap(),
-                invocation.unwrap_or(0)
-            );
+            let mut record = format!("{},{},{}", name, build.unwrap(), invocation.unwrap_or(0));
             for (_name, value) in &self.counters.counters {
                 record += &format!(",{}", value);
             }
