@@ -1,21 +1,21 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, path::PathBuf};
 
 use once_cell::sync::Lazy;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use sysinfo::{CpuExt, System, SystemExt};
 
 use crate::config::Profile;
 
-#[derive(Debug, Serialize)]
-pub struct ProfileWithPlatformInfo<'a> {
-    pub platform: &'static PlatformInfo,
-    pub profile: &'a Profile,
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ProfileWithPlatformInfo {
+    pub platform: PlatformInfo,
+    pub profile: Profile,
     pub runid: String,
     #[serde(rename = "profile-commit")]
     pub profile_commit: String,
 }
 
-impl<'a> ProfileWithPlatformInfo<'a> {
+impl ProfileWithPlatformInfo {
     pub fn get_git_hash() -> String {
         let git_info = git_info::get();
         let mut hash = git_info
@@ -28,17 +28,22 @@ impl<'a> ProfileWithPlatformInfo<'a> {
         hash
     }
 
-    pub fn new(profile: &'a Profile, runid: String) -> Self {
+    pub fn new(profile: &Profile, runid: String) -> Self {
         Self {
-            platform: &PLATFORM_INFO,
-            profile,
+            platform: PLATFORM_INFO.clone(),
+            profile: profile.clone(),
             runid,
             profile_commit: Self::get_git_hash(),
         }
     }
+
+    pub fn load(path: &PathBuf) -> anyhow::Result<Self> {
+        let content = std::fs::read_to_string(path)?;
+        Ok(toml::from_str(&content)?)
+    }
 }
 
-#[derive(Debug, Serialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct PlatformInfo {
     pub host: String,
     pub os: String,
