@@ -2,7 +2,7 @@ use std::{collections::HashMap, fs::OpenOptions, io, io::Write, path::Path, proc
 
 use cargo_metadata::MetadataCommand;
 
-use crate::{config, platform_info::ProfileWithPlatformInfo};
+use crate::{config, platform_info::RunInfo};
 
 /// Benchmark running info
 #[derive(Debug)]
@@ -66,7 +66,7 @@ impl BenchRunner {
         // cargo features
         writeln!(f, "features: {}", variant.features.join(","))?;
         // git commit
-        writeln!(f, "commit: {}", ProfileWithPlatformInfo::get_git_hash())?;
+        writeln!(f, "commit: {}", RunInfo::get_git_hash())?;
         writeln!(f, "---")?;
         Ok(())
     }

@@ -8,7 +8,7 @@ use sysinfo::{CpuExt, System, SystemExt};
 use crate::config::Profile;
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct ProfileWithPlatformInfo {
+pub struct RunInfo {
     pub platform: PlatformInfo,
     pub profile: Profile,
     pub runid: String,
@@ -20,7 +20,7 @@ pub struct ProfileWithPlatformInfo {
     pub profile_commit: String,
 }
 
-impl ProfileWithPlatformInfo {
+impl RunInfo {
     pub fn get_git_hash() -> String {
         let git_info = git_info::get();
         let mut hash = git_info

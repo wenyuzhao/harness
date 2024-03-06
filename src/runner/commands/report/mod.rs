@@ -4,7 +4,7 @@ use cargo_metadata::MetadataCommand;
 use chrono::{DateTime, Utc};
 use clap::Parser;
 
-use crate::platform_info::ProfileWithPlatformInfo;
+use crate::platform_info::RunInfo;
 
 mod data;
 mod printer;
@@ -56,7 +56,7 @@ impl ReportArgs {
         // Collect crate info and other metadata
         let crate_info = self.load_crate_info()?;
         let log_dir = self.find_log_dir(&crate_info)?;
-        let config = ProfileWithPlatformInfo::load(&log_dir.join("config.toml"))?;
+        let config = RunInfo::load(&log_dir.join("config.toml"))?;
         // Load benchmark result
         let results_csv = log_dir.join("results.csv");
         if !results_csv.exists() {
