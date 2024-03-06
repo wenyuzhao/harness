@@ -1,26 +1,35 @@
-use std::{collections::HashMap, fs::OpenOptions, io, io::Write, path::Path, process::Command};
+use std::{
+    collections::HashMap,
+    fs::OpenOptions,
+    io::{self, Write},
+    path::{Path, PathBuf},
+    process::Command,
+};
 
 use cargo_metadata::MetadataCommand;
+use colored::Colorize;
 
-use crate::{config, platform_info::RunInfo};
+use crate::{config, platform_info::RunInfo, print_md};
 
 /// Benchmark running info
 #[derive(Debug)]
-pub struct BenchRunner {
+pub struct BenchRunner<'a> {
     /// Name of the current crate
     crate_name: String,
     /// Names of the benches to run
     benches: Vec<String>,
     /// Benchmark profile
-    profile: config::Profile,
+    run: &'a RunInfo,
+    logdir: Option<PathBuf>,
 }
 
-impl BenchRunner {
-    pub fn new(crate_name: String, profile: config::Profile) -> Self {
+impl<'a> BenchRunner<'a> {
+    pub fn new(crate_name: String, run: &'a RunInfo) -> Self {
         Self {
             crate_name,
             benches: Vec::new(),
-            profile,
+            run,
+            logdir: None,
         }
     }
 
@@ -102,7 +111,7 @@ impl BenchRunner {
                 &[] as &[&str]
             })
             .args(["--", "-n"])
-            .arg(format!("{}", self.profile.iterations))
+            .arg(format!("{}", self.run.profile.iterations))
             .arg("--overwrite-crate-name")
             .arg(&self.crate_name)
             .arg("--overwrite-benchmark-name")
@@ -135,24 +144,48 @@ impl BenchRunner {
         }
     }
 
+    fn print_before_run(&self) {
+        print_md!("# {}\n\n", self.run.runid);
+        print_md!(
+            "* logs: `{}`",
+            self.logdir.as_ref().unwrap().to_str().unwrap()
+        );
+        print_md!("* benchmarks: `{}`", self.benches.len());
+        print_md!("* builds: `{}`", self.run.profile.build_variants.len());
+        print_md!("* invocations: `{}`", self.run.profile.invocations);
+        print_md!("* iterations: `{}`", self.run.profile.iterations);
+        println!("");
+        println!("{}\n", "Running Benchmarks...".blue());
+    }
+
+    fn print_after_run(&self) {
+        println!("\n{}\n", "✔ Benchmarking Finished.".green());
+        let csv_path = self.logdir.as_ref().unwrap().join("results.csv");
+        print_md!("Raw benchmark results at:\n");
+        print_md!("* `{}`\n\n", csv_path.display());
+        print_md!("Please run `cargo harness report` to view results.\n");
+    }
+
     /// Run all benchmarks with all build variants.
     /// Benchmarks are invoked one by one.
     pub fn run(&mut self, log_dir: &Path) -> anyhow::Result<()> {
+        self.logdir = Some(log_dir.to_owned());
         self.collect_benches()?;
+        self.print_before_run();
         for bench in &self.benches {
             print!("[{}] ", bench);
             io::stdout().flush()?;
-            for i in 0..self.profile.invocations {
+            for i in 0..self.run.profile.invocations {
                 print!("{}", i);
                 io::stdout().flush()?;
                 for (index, (variant_name, variant)) in
-                    self.profile.build_variants.iter().enumerate()
+                    self.run.profile.build_variants.iter().enumerate()
                 {
                     assert!(index < 26);
                     const KEYS: &str = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
                     let key = KEYS.chars().nth(index).unwrap();
                     let result =
-                        self.run_one(&self.profile, variant_name, variant, bench, log_dir, i);
+                        self.run_one(&self.run.profile, variant_name, variant, bench, log_dir, i);
                     match result {
                         Ok(_) => {
                             print!("{}", key)
@@ -167,6 +200,7 @@ impl BenchRunner {
             println!();
             io::stdout().flush()?;
         }
+        self.print_after_run();
         Ok(())
     }
 }

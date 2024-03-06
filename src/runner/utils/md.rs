@@ -2,6 +2,12 @@ use std::io::IsTerminal;
 
 use polars::prelude::*;
 
+pub fn print_md(s: impl AsRef<str>) {
+    let mut printer = MarkdownPrinter::new();
+    printer.add(s);
+    printer.dump();
+}
+
 pub struct MarkdownPrinter {
     content: String,
 }
@@ -135,4 +141,11 @@ impl MarkdownPrinter {
         }
         return md;
     }
+}
+
+#[macro_export]
+macro_rules! print_md {
+    ($($arg:tt)*) => {
+        $crate::utils::md::print_md(format!($($arg)*));
+    };
 }

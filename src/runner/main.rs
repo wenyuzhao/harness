@@ -1,6 +1,8 @@
 use clap::{Parser, Subcommand};
 use once_cell::sync::Lazy;
 
+#[macro_use]
+mod utils;
 mod commands;
 mod config;
 mod platform_info;

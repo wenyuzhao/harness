@@ -7,7 +7,6 @@ use clap::Parser;
 use crate::platform_info::RunInfo;
 
 mod data;
-mod printer;
 
 /// Analyze and report benchmark results summary
 #[derive(Parser)]
@@ -73,7 +72,7 @@ impl ReportArgs {
             None
         };
         // Print results
-        let mut printer = printer::MarkdownPrinter::new();
+        let mut printer = crate::utils::md::MarkdownPrinter::new();
         printer.add(format!(
             "# [{}] Benchmark Results Summary\n\n",
             crate_info.name

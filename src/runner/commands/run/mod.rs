@@ -96,15 +96,9 @@ impl RunArgs {
     ) -> anyhow::Result<RunInfo> {
         // dump to file
         std::fs::create_dir_all(log_dir)?;
-        let profile_with_platform_info = RunInfo::new(profile, runid.to_owned(), start_time);
-        std::fs::write(
-            log_dir.join("config.toml"),
-            toml::to_string(&profile_with_platform_info)?,
-        )?;
-        // dump to terminal
-        println!("RUNID: {}", profile_with_platform_info.runid);
-        println!("LOGS: {}", log_dir.to_str().unwrap());
-        Ok(profile_with_platform_info)
+        let run_info = RunInfo::new(profile, runid.to_owned(), start_time);
+        std::fs::write(log_dir.join("config.toml"), toml::to_string(&run_info)?)?;
+        Ok(run_info)
     }
 
     fn update_metadata_on_finish(
@@ -130,11 +124,11 @@ impl RunArgs {
         // Prepare logs dir and runid
         let (run_id, start_time) = self.generate_runid();
         let log_dir = self.prepare_logs_dir(&crate_info, &run_id)?;
-        let meta = self.dump_metadata(&run_id, &profile, &log_dir, start_time)?;
+        let run_info = self.dump_metadata(&run_id, &profile, &log_dir, start_time)?;
         // Run benchmarks
-        let mut runner = bench_runner::BenchRunner::new(crate_info.name.clone(), profile);
+        let mut runner = bench_runner::BenchRunner::new(crate_info.name.clone(), &run_info);
         runner.run(&log_dir)?;
-        self.update_metadata_on_finish(&log_dir, meta)?;
+        self.update_metadata_on_finish(&log_dir, run_info)?;
         Ok(())
     }
 
