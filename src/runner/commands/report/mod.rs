@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 
 use cargo_metadata::MetadataCommand;
+use chrono::{DateTime, Utc};
 use clap::Parser;
 
 use crate::platform_info::ProfileWithPlatformInfo;
@@ -70,6 +71,24 @@ impl ReportArgs {
             crate_info.name
         ));
         printer.add(format!("* Run ID: `{}`\n", config.runid));
+        printer.add(format!(
+            "* Start Time (UTC): `{}`\n",
+            DateTime::<Utc>::from_timestamp(config.start_timestamp_utc, 0)
+                .unwrap()
+                .format("%Y-%m-%d %H:%M:%S")
+                .to_string()
+        ));
+        if let Some(t) = config.finish_timestamp_utc {
+            printer.add(format!(
+                "* Finish Time (UTC): `{}`\n",
+                DateTime::<Utc>::from_timestamp(t, 0)
+                    .unwrap()
+                    .format("%Y-%m-%d %H:%M:%S")
+                    .to_string()
+            ));
+        } else {
+            printer.add("* Finish Time (UTC): `N/A`\n");
+        }
         printer.add(format!("* OS: `{}`\n", config.platform.os));
         printer.add(format!("* CPU: `{}`\n", config.platform.cpu_model));
         printer.add(format!("* Memory: `{} GB`\n", config.platform.memory >> 30));

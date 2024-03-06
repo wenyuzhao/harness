@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 
 use cargo_metadata::MetadataCommand;
+use chrono::{DateTime, Local};
 use clap::Parser;
 
 use crate::{
@@ -40,13 +41,12 @@ struct CrateInfo {
 }
 
 impl RunArgs {
-    fn generate_runid(&self) -> String {
-        let time = chrono::Local::now()
-            .format("%Y-%m-%d-%a-%H%M%S")
-            .to_string();
+    fn generate_runid(&self) -> (String, DateTime<chrono::Local>) {
+        let t = chrono::Local::now();
+        let time = t.format("%Y-%m-%d-%a-%H%M%S").to_string();
         let host = crate::platform_info::PLATFORM_INFO.host.clone();
         let run_id = format!("{}-{}-{}", self.profile, host, time);
-        run_id
+        (run_id, t)
     }
 
     fn load_crate_info(&self) -> anyhow::Result<CrateInfo> {
@@ -89,10 +89,12 @@ impl RunArgs {
         runid: &str,
         profile: &Profile,
         log_dir: &PathBuf,
-    ) -> anyhow::Result<()> {
+        start_time: DateTime<Local>,
+    ) -> anyhow::Result<ProfileWithPlatformInfo> {
         // dump to file
         std::fs::create_dir_all(log_dir)?;
-        let profile_with_platform_info = ProfileWithPlatformInfo::new(profile, runid.to_owned());
+        let profile_with_platform_info =
+            ProfileWithPlatformInfo::new(profile, runid.to_owned(), start_time);
         std::fs::write(
             log_dir.join("config.toml"),
             toml::to_string(&profile_with_platform_info)?,
@@ -100,6 +102,18 @@ impl RunArgs {
         // dump to terminal
         println!("RUNID: {}", profile_with_platform_info.runid);
         println!("LOGS: {}", log_dir.to_str().unwrap());
+        Ok(profile_with_platform_info)
+    }
+
+    fn update_metadata_on_finish(
+        &self,
+        log_dir: &PathBuf,
+        mut meta: ProfileWithPlatformInfo,
+    ) -> anyhow::Result<()> {
+        assert!(log_dir.exists());
+        assert!(meta.finish_timestamp_utc.is_none());
+        meta.finish_timestamp_utc = Some(Local::now().to_utc().timestamp());
+        std::fs::write(log_dir.join("config.toml"), toml::to_string(&meta)?)?;
         Ok(())
     }
 
@@ -120,12 +134,13 @@ impl RunArgs {
             profile.iterations = iterations;
         }
         // Prepare logs dir and runid
-        let run_id = self.generate_runid();
+        let (run_id, start_time) = self.generate_runid();
         let log_dir = self.prepare_logs_dir(&crate_info, &run_id)?;
-        self.dump_metadata(&run_id, &profile, &log_dir)?;
+        let meta = self.dump_metadata(&run_id, &profile, &log_dir, start_time)?;
         // Run benchmarks
         let mut runner = bench_runner::BenchRunner::new(crate_info.name, profile);
         runner.run(&log_dir)?;
+        self.update_metadata_on_finish(&log_dir, meta)?;
         Ok(())
     }
 }

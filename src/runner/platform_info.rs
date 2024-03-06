@@ -1,5 +1,6 @@
 use std::{collections::HashMap, path::PathBuf};
 
+use chrono::{DateTime, Local};
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use sysinfo::{CpuExt, System, SystemExt};
@@ -11,6 +12,10 @@ pub struct ProfileWithPlatformInfo {
     pub platform: PlatformInfo,
     pub profile: Profile,
     pub runid: String,
+    #[serde(rename = "start-time-utc")]
+    pub start_timestamp_utc: i64,
+    #[serde(rename = "finish-time-utc")]
+    pub finish_timestamp_utc: Option<i64>,
     #[serde(rename = "profile-commit")]
     pub profile_commit: String,
 }
@@ -28,12 +33,14 @@ impl ProfileWithPlatformInfo {
         hash
     }
 
-    pub fn new(profile: &Profile, runid: String) -> Self {
+    pub fn new(profile: &Profile, runid: String, start_time: DateTime<Local>) -> Self {
         Self {
             platform: PLATFORM_INFO.clone(),
             profile: profile.clone(),
             runid,
             profile_commit: Self::get_git_hash(),
+            start_timestamp_utc: start_time.to_utc().timestamp(),
+            finish_timestamp_utc: None,
         }
     }
 

@@ -27,14 +27,6 @@ impl MarkdownPrinter {
             }
             skin.headers[0].set_bg(termimad::crossterm::style::Color::Blue);
             skin.headers[0].add_attr(termimad::crossterm::style::Attribute::NoUnderline);
-            // skin.headers[0]
-            //     .compound_style
-            //     .attrs()
-            //     .unset(termimad::crossterm::style::Attribute::Underlined);
-            // skin.headers[0]
-            //     .compound_style
-            //     .attrs()
-            //     .unset(termimad::crossterm::style::Attribute::Undercurled);
             skin.print_text(&self.content);
         } else {
             println!("{}", self.content);
