@@ -15,7 +15,7 @@ pub struct Cli {
 #[derive(Subcommand)]
 pub enum Commands {
     Run(commands::run::RunArgs),
-    Plot(PlotArgs),
+    Report(commands::report::ReportArgs),
 }
 
 /// Plot benchmark results
@@ -36,6 +36,6 @@ static CMD_ARGS: Lazy<Cli> = Lazy::new(|| {
 fn main() -> anyhow::Result<()> {
     match &CMD_ARGS.command {
         Commands::Run(cmd) => cmd.run(),
-        Commands::Plot(_args) => unimplemented!(),
+        Commands::Report(cmd) => cmd.run(),
     }
 }
