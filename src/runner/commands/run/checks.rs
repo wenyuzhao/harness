@@ -1,3 +1,4 @@
+#[cfg(target_os = "linux")]
 use crate::platform_info::PLATFORM_INFO;
 
 impl super::RunArgs {

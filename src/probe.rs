@@ -123,7 +123,7 @@ impl ProbeManager {
     }
 
     pub(crate) fn dump_counters(
-        &mut self,
+        &self,
         name: &str,
         csv: Option<&PathBuf>,
         invocation: Option<usize>,

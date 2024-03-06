@@ -1,8 +1,13 @@
-use std::path::PathBuf;
+use std::{
+    cell::RefCell,
+    path::PathBuf,
+    sync::Mutex,
+    time::{Duration, Instant},
+};
 
 use clap::Parser;
 
-use crate::{benchmark::Benchmark, probe::ProbeManager};
+use crate::probe::ProbeManager;
 
 #[derive(Parser, Debug)]
 pub struct BenchArgs {
@@ -36,28 +41,89 @@ pub struct BenchArgs {
     pub current_build_variant: Option<String>,
 }
 
-pub struct Bencher<B> {
-    name: String,
-    benchmark: B,
-    probes: ProbeManager,
+pub struct Bencher {
+    elapsed: Mutex<Option<Duration>>,
+    probes: RefCell<ProbeManager>,
 }
 
-impl<B: Benchmark> Bencher<B> {
+pub struct BenchTimer<'a> {
+    start_time: std::time::Instant,
+    bencher: &'a Bencher,
+}
+
+impl<'a> Drop for BenchTimer<'a> {
+    fn drop(&mut self) {
+        let elapsed = self.start_time.elapsed();
+        self.bencher.harness_end();
+        let mut lock = self.bencher.elapsed.lock().unwrap();
+        assert!(lock.is_none(), "More than one benchmark timer detected");
+        *lock = Some(elapsed);
+    }
+}
+
+impl Bencher {
+    fn new() -> Self {
+        Self {
+            elapsed: Mutex::new(None),
+            probes: RefCell::new(ProbeManager::new()),
+        }
+    }
+
+    fn harness_begin(&self) {
+        let mut probes = self.probes.borrow_mut();
+        probes.harness_begin();
+    }
+
+    fn harness_end(&self) {
+        let mut probes = self.probes.borrow_mut();
+        probes.harness_end();
+    }
+
+    pub fn start_timing(&self) -> BenchTimer {
+        self.harness_begin();
+        BenchTimer {
+            start_time: Instant::now(),
+            bencher: self,
+        }
+    }
+
+    pub fn time(&self, mut f: impl FnMut()) {
+        let _timer = self.start_timing();
+        f();
+    }
+}
+
+pub struct SingleBenchmarkRunner {
+    name: String,
+    bencher: Bencher,
+    benchmark: fn(&Bencher),
+}
+
+impl SingleBenchmarkRunner {
     #[doc(hidden)]
-    pub fn new(fname: &str, benchmark: B) -> Self {
+    pub fn new(fname: &str, benchmark: fn(&Bencher)) -> Self {
         let fname = std::path::PathBuf::from(fname);
         let name = fname.file_stem().unwrap().to_str().unwrap().to_owned();
         Self {
             name,
+            bencher: Bencher::new(),
             benchmark,
-            probes: ProbeManager::new(),
         }
+    }
+
+    fn run_once(&mut self) -> f32 {
+        (self.benchmark)(&self.bencher);
+        // Return execution time
+        let elapsed = self.bencher.elapsed.lock().unwrap().take();
+        assert!(elapsed.is_some(), "No benchmark timer detected");
+        let elapsed = elapsed.unwrap();
+        elapsed.as_micros() as f32 / 1000.0
     }
 
     #[doc(hidden)]
     pub fn run(&mut self) -> anyhow::Result<()> {
         let args = BenchArgs::parse();
-        self.probes.init(&args.probes);
+        self.bencher.probes.borrow_mut().init(&args.probes);
         let name = if let Some(n) = args.overwrite_benchmark_name.as_ref() {
             n.clone()
         } else {
@@ -82,23 +148,13 @@ impl<B: Benchmark> Bencher<B> {
                 "===== {} {} starting {}=====",
                 crate_name, name, start_label
             );
-            self.benchmark.prologue();
-            let time = std::time::Instant::now();
-            if is_timing_iteration {
-                self.probes.harness_begin();
-            }
-            self.benchmark.iter();
-            if is_timing_iteration {
-                self.probes.harness_end();
-            }
-            let elapsed = time.elapsed().as_micros() as f32 / 1000.0;
-            self.benchmark.epilogue();
+            let elapsed = self.run_once();
             eprintln!(
                 "===== {} {} {} in {:.1} msec =====",
                 crate_name, name, end_label, elapsed
             );
         }
-        self.probes.dump_counters(
+        self.bencher.probes.borrow().dump_counters(
             &name,
             args.output_csv.as_ref(),
             args.current_invocation,
