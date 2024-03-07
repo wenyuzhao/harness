@@ -262,7 +262,7 @@ impl<'a, 'b> ReproducibilityChecker<'a, 'b> {
                     list_env(k, v, "");
                 }
             }
-            self.warn(s);
+            self.warn(s.trim_end());
         }
         #[cfg(target_os = "linux")]
         if old.platform.scaling_governor != new.platform.scaling_governor {
