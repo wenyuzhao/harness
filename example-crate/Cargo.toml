@@ -41,4 +41,4 @@ env = { PERF_EVENTS = "PERF_COUNT_HW_CPU_CYCLES,PERF_COUNT_HW_INSTRUCTIONS,PERF_
 
 [package.metadata.harness.profiles.default.builds]
 stable_sort = {}
-unstable_sort = {}
+unstable_sort = { features = ["unstable"] }
