@@ -6,7 +6,7 @@ use clap::Parser;
 
 use crate::meta::RunInfo;
 
-mod data;
+pub(crate) mod data;
 
 /// Analyze and report benchmark results summary
 #[derive(Parser)]
@@ -14,6 +14,7 @@ pub struct ReportArgs {
     /// The run id to report. Default to the latest run.
     pub run_id: Option<String>,
     /// The baseline build name to compare with.
+    /// If not specified, the one specified in the profile will be used.
     #[clap(long)]
     pub baseline: Option<String>,
 }
@@ -56,6 +57,7 @@ impl ReportArgs {
         let crate_info = self.load_crate_info()?;
         let log_dir = self.find_log_dir(&crate_info)?;
         let config = RunInfo::load(&log_dir.join("config.toml"))?;
+        let baseline = self.baseline.clone().or(config.profile.baseline);
         // Load benchmark result
         let results_csv = log_dir.join("results.csv");
         if !results_csv.exists() {
@@ -65,7 +67,7 @@ impl ReportArgs {
         // Mean over all invocations, group by [bench, build]
         let (avg_df, ci_df) = data::mean_over_invocations(&raw_df)?;
         // Mean and geomean over all benchmarks, group by builds
-        let summary_dfs = data::geomean_over_benchmarks(&avg_df)?;
+        let summaries = data::per_metric_summary(&avg_df, baseline.as_ref().map(|s| s.as_str()))?;
         // let normed_summary_df = if let Some(baseline) = &self.baseline {
         //     Some(data::normalize(&summary_df, baseline)?)
         // } else {
@@ -105,12 +107,12 @@ impl ReportArgs {
         printer.add("\n## Mean Over All Invocations\n\n");
         printer.add_dataframe_with_ci(&avg_df, &ci_df);
         printer.add("\n## Summary\n");
-        for (mut metric, df) in summary_dfs {
-            if metric == "time" {
-                metric = "time (ms)".to_owned();
+        for mut summary in summaries {
+            if summary.name == "time" {
+                summary.name = "time (ms)".to_owned();
             }
-            printer.add(format!("\n**{}**:\n\n", metric));
-            printer.add_dataframe(&df);
+            printer.add(format!("\n**{}**:\n\n", summary.name));
+            printer.add_metric_summary(&summary);
         }
         // if let Some(df) = normed_summary_df {
         //     printer.add(format!(

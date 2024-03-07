@@ -45,6 +45,8 @@ pub struct Profile {
     /// Number of invocations
     #[serde(default = "one")]
     pub invocations: usize,
+    /// The baseline build name. This is only used for data reporting.
+    pub baseline: Option<String>,
 }
 
 fn default_true() -> bool {
