@@ -3,6 +3,7 @@ use std::{collections::HashMap, path::PathBuf};
 use chrono::{DateTime, Local};
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
+use std::process::Command;
 use sysinfo::{CpuExt, System, SystemExt};
 
 use crate::config::Profile;
@@ -50,6 +51,16 @@ impl RunInfo {
             hash += "-dirty";
         }
         hash
+    }
+
+    pub fn get_second_last_git_hash() -> String {
+        Command::new("git")
+            .args(["rev-parse", "@~"])
+            .output()
+            .ok()
+            .and_then(|o| String::from_utf8(o.stdout).ok())
+            .map(|s| s.trim().to_owned())
+            .unwrap_or_else(|| "unknown".to_owned())
     }
 
     pub fn new(
@@ -110,7 +121,7 @@ fn get_rustc_version() -> Option<String> {
 
 #[cfg(target_os = "linux")]
 fn get_logged_in_users() -> anyhow::Result<Vec<String>> {
-    std::process::Command::new("users")
+    Command::new("users")
         .output()
         .map(|o| {
             let mut users = String::from_utf8_lossy(&o.stdout)

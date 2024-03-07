@@ -38,6 +38,7 @@ pub struct Profile {
     pub probes: Vec<String>,
     #[serde(default)]
     pub env: HashMap<String, String>,
+    #[serde(default)]
     pub builds: HashMap<String, BuildConfig>,
     /// Number of iterations
     #[serde(default = "one")]
@@ -74,7 +75,6 @@ impl Default for BuildConfig {
             commit: None,
         }
     }
-
 }
 
 pub fn load_from_cargo_toml() -> anyhow::Result<Config> {

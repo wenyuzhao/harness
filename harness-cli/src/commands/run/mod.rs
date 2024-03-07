@@ -123,6 +123,15 @@ impl RunArgs {
         if let Some(iterations) = self.iterations {
             profile.iterations = iterations;
         }
+        // Default build configs
+        if profile.builds.is_empty() {
+            let mut head = BuildConfig::default();
+            head.commit = Some(RunInfo::get_git_hash());
+            profile.builds.insert("HEAD".to_owned(), head);
+            let mut head_1 = BuildConfig::default();
+            head_1.commit = Some(RunInfo::get_second_last_git_hash());
+            profile.builds.insert("HEAD~1".to_owned(), head_1);
+        }
         // Checks
         let (runid, start_time) = self.generate_runid();
         let run_info = RunInfo::new(crate_info, profile, runid.clone(), start_time);
