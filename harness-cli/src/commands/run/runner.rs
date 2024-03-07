@@ -92,6 +92,20 @@ impl<'a> BenchRunner<'a> {
     ) -> anyhow::Result<()> {
         std::fs::create_dir_all(log_dir)?;
         let log_file = log_dir.join(format!("{}.{}.log", bench, build_name));
+        // Checkout branch
+        if let Some(commit) = &build.commit {
+            let out = Command::new("git")
+                .args(["checkout", commit])
+                .current_dir(&self.run.crate_info.target_dir)
+                .output()?;
+            if !out.status.success() {
+                return Err(anyhow::anyhow!(
+                    "Failed to checkout commit `{}` for build `{}`",
+                    commit,
+                    build_name
+                ));
+            }
+        }
         let outputs = OpenOptions::new()
             .write(true)
             .append(true)

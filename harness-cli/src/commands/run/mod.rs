@@ -160,6 +160,23 @@ impl RunArgs {
                 .on_magenta()
                 .bold()
         );
+        if RunInfo::get_git_hash() != run_info.default_build_commit {
+            let mut commit = run_info.default_build_commit.clone();
+            if commit.ends_with("-dirty") {
+                commit = commit.trim_end_matches("-dirty").to_owned();
+            }
+            println!("{}", format!("Checkout git commit: {}\n", commit).magenta());
+            let output = std::process::Command::new("git")
+                .args(&["checkout", &commit])
+                .output()?;
+            if !output.status.success() {
+                anyhow::bail!(
+                    "Failed to checkout git commit: {}: {}",
+                    commit,
+                    String::from_utf8_lossy(&output.stderr)
+                );
+            }
+        }
         // Run benchmarks
         self.run_benchmarks(&crate_info, profile, Some(&run_info))?;
         Ok(())

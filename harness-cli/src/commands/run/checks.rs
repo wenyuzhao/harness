@@ -64,6 +64,27 @@ impl<'a> PreBenchmarkingChecker<'a> {
                 }
             }
         }
+        // git commit exists?
+        for (name, build) in &self.run.profile.builds {
+            if let Some(mut commit) = build.commit.clone() {
+                if commit.ends_with("-dirty") {
+                    commit = commit.trim_end_matches("-dirty").to_owned();
+                }
+                let verified = std::process::Command::new("git")
+                    .args(&["cat-file", "-e", &commit])
+                    .current_dir(&self.run.crate_info.target_dir)
+                    .output()
+                    .map(|o| o.status.success())
+                    .unwrap_or(false);
+                if !verified {
+                    anyhow::bail!(
+                        "Git commit for build `{}` does not exist: {}.",
+                        name.italic(),
+                        commit.italic().on_custom_color(*BG),
+                    );
+                }
+            }
+        }
         Ok(())
     }
 
@@ -270,6 +291,12 @@ impl<'a, 'b> ReproducibilityChecker<'a, 'b> {
         }
         if old.profile.iterations != new.profile.iterations {
             self.check_changed_int("Iterations", old.profile.iterations, new.profile.iterations);
+        }
+        if old.default_build_commit.ends_with("-dirty") {
+            self.warn(format!(
+                "Profile commit {} is dirty. Uncommited changes may affect reproducibility.",
+                old.default_build_commit.italic().on_custom_color(*BG)
+            ));
         }
         Ok(())
     }
