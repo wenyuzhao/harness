@@ -1,5 +1,5 @@
 [package]
-name = "example-crate"
+name = "sort"
 version = "0.1.0"
 edition = "2021"
 publish = false
@@ -10,8 +10,8 @@ publish = false
 rand = { version = "0.8.5", features = ["small_rng"] }
 
 [dev-dependencies]
-harness = { path = "../harness" }
-harness-perf = { path = "../probes/perf" }
+harness = { path = "../../harness" }
+harness-perf = { path = "../../probes/perf" }
 
 [features]
 default = []
