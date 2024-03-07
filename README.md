@@ -24,5 +24,7 @@ TODO:
 - [x] Binary runner
 - [x] Result reporting
 - [x] Test runnner
-- [ ] Scratch folder
+- [x] Scratch folder
 - [ ] Documentation
+- [ ] Benchmark subsetting
+- [ ] Comments for public api
