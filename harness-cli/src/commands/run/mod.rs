@@ -176,16 +176,7 @@ impl RunArgs {
         }
         println!("{}", format!("Checkout git commit: {}\n", commit).magenta());
         if utils::git::get_git_hash()? != run_info.commit {
-            let output = std::process::Command::new("git")
-                .args(["checkout", &commit])
-                .output()?;
-            if !output.status.success() {
-                anyhow::bail!(
-                    "Failed to checkout git commit: {}: {}",
-                    commit,
-                    String::from_utf8_lossy(&output.stderr)
-                );
-            }
+            utils::git::checkout(&commit)?;
         }
         Ok(run_info)
     }

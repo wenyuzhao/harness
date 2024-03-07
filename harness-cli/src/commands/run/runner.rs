@@ -160,19 +160,9 @@ impl<'a> BenchRunner<'a> {
         std::fs::create_dir_all(log_dir)?;
         self.setup_before_invocation()?;
         let log_file = log_dir.join(format!("{}.{}.log", bench, build_name));
-        // Checkout branch
+        // Checkout the given commit if it's specified
         if let Some(commit) = &build.commit {
-            let out = Command::new("git")
-                .args(["checkout", commit])
-                .current_dir(&self.run.crate_info.target_dir)
-                .output()?;
-            if !out.status.success() {
-                return Err(anyhow::anyhow!(
-                    "Failed to checkout commit `{}` for build `{}`",
-                    commit,
-                    build_name
-                ));
-            }
+            utils::git::checkout(&commit)?;
         }
         let outputs = OpenOptions::new()
             .append(true)

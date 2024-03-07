@@ -45,16 +45,19 @@ pub fn restore_git_state(prev: &GitInfo) -> anyhow::Result<()> {
         } else {
             prev.head.last_commit_hash.as_ref().unwrap()
         };
-        let output = Command::new("git")
-            .args(["checkout", checkout_target])
-            .output()?;
-        if !output.status.success() {
-            anyhow::bail!(
-                "Failed to checkout git commit: {}: {}",
-                checkout_target,
-                String::from_utf8_lossy(&output.stderr)
-            );
-        }
+        checkout(checkout_target)?;
+    }
+    Ok(())
+}
+
+pub fn checkout(commit: &str) -> anyhow::Result<()> {
+    let output = Command::new("git").args(["checkout", commit]).output()?;
+    if !output.status.success() {
+        anyhow::bail!(
+            "Failed to checkout git commit: {}: {}",
+            commit,
+            String::from_utf8_lossy(&output.stderr)
+        );
     }
     Ok(())
 }
