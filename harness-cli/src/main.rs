@@ -1,4 +1,5 @@
 use clap::{Parser, Subcommand};
+use colored::Colorize;
 use once_cell::sync::Lazy;
 
 #[macro_use]
@@ -36,8 +37,13 @@ static CMD_ARGS: Lazy<Cli> = Lazy::new(|| {
 });
 
 fn main() -> anyhow::Result<()> {
-    match &CMD_ARGS.command {
+    let result = match &CMD_ARGS.command {
         Commands::Run(cmd) => cmd.run(),
         Commands::Report(cmd) => cmd.run(),
+    };
+    if let Err(err) = result {
+        eprintln!("❌ {}: {}", "ERROR".red().bold(), err.to_string().red());
+        std::process::exit(1);
     }
+    Ok(())
 }

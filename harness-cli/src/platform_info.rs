@@ -7,8 +7,16 @@ use sysinfo::{CpuExt, System, SystemExt};
 
 use crate::config::Profile;
 
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct CrateInfo {
+    pub name: String,
+    pub target_dir: PathBuf,
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct RunInfo {
+    #[serde(rename = "crate")]
+    pub crate_info: CrateInfo,
     pub platform: PlatformInfo,
     pub profile: Profile,
     pub runid: String,
@@ -33,8 +41,14 @@ impl RunInfo {
         hash
     }
 
-    pub fn new(profile: &Profile, runid: String, start_time: DateTime<Local>) -> Self {
+    pub fn new(
+        crate_info: &CrateInfo,
+        profile: &Profile,
+        runid: String,
+        start_time: DateTime<Local>,
+    ) -> Self {
         Self {
+            crate_info: crate_info.clone(),
             platform: PLATFORM_INFO.clone(),
             profile: profile.clone(),
             runid,
@@ -88,10 +102,12 @@ fn get_logged_in_users() -> anyhow::Result<Vec<String>> {
     std::process::Command::new("users")
         .output()
         .map(|o| {
-            String::from_utf8_lossy(&o.stdout)
+            let mut users = String::from_utf8_lossy(&o.stdout)
                 .split_whitespace()
                 .map(|s| s.to_owned())
-                .collect()
+                .collect::<Vec<_>>();
+            users.dedup();
+            users
         })
         .map_err(|e| e.into())
 }

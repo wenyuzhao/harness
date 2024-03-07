@@ -79,15 +79,16 @@ impl ProbeManager {
             .map(|s| s.trim())
             .filter(|s| !s.is_empty());
         for probe in probes {
+            let dylib_name = probe.replace("-", "_");
+            let dylib_filename = if cfg!(target_os = "macos") {
+                format!("lib{dylib_name}.dylib")
+            } else if cfg!(target_os = "linux") {
+                format!("lib{dylib_name}.so")
+            } else {
+                unimplemented!()
+            };
             unsafe {
-                let filename = if cfg!(target_os = "macos") {
-                    format!("lib{probe}.dylib")
-                } else if cfg!(target_os = "linux") {
-                    format!("lib{probe}.so")
-                } else {
-                    unimplemented!()
-                };
-                let lib = Library::new(filename).unwrap();
+                let lib = Library::new(dylib_filename).unwrap();
                 let register_probe_fn: Symbol<extern "C" fn(probes: &mut ProbeManager)> =
                     lib.get(b"harness_register_probe").unwrap();
                 register_probe_fn(self);

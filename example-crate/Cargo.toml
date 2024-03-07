@@ -36,7 +36,7 @@ harness = false
 [package.metadata.harness.profiles.default]
 iterations = 5
 invocations = 10
-probes = ["harness_perf"]
+probes = ["harness-perf"]
 env = { PERF_EVENTS = "PERF_COUNT_HW_CPU_CYCLES,PERF_COUNT_HW_INSTRUCTIONS,PERF_COUNT_HW_CACHE_L1D:MISS,PERF_COUNT_HW_CACHE_DTLB:MISS" }
 
 [package.metadata.harness.profiles.default.builds]

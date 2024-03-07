@@ -6,7 +6,7 @@ use clap::Parser;
 
 use crate::{
     config::{self, Profile},
-    platform_info::{RunInfo, PLATFORM_INFO},
+    platform_info::{CrateInfo, RunInfo, PLATFORM_INFO},
 };
 
 mod bench_runner;
@@ -36,11 +36,6 @@ pub struct RunArgs {
     /// Specify a path to the config file, or the run id to reproduce a previous run.
     #[arg(long)]
     pub config: Option<String>,
-}
-
-struct CrateInfo {
-    name: String,
-    target_dir: PathBuf,
 }
 
 impl RunArgs {
@@ -90,13 +85,14 @@ impl RunArgs {
     fn dump_metadata(
         &self,
         runid: &str,
+        crate_info: &CrateInfo,
         profile: &Profile,
         log_dir: &PathBuf,
         start_time: DateTime<Local>,
     ) -> anyhow::Result<RunInfo> {
         // dump to file
         std::fs::create_dir_all(log_dir)?;
-        let run_info = RunInfo::new(profile, runid.to_owned(), start_time);
+        let run_info = RunInfo::new(crate_info, profile, runid.to_owned(), start_time);
         std::fs::write(log_dir.join("config.toml"), toml::to_string(&run_info)?)?;
         Ok(run_info)
     }
@@ -124,7 +120,8 @@ impl RunArgs {
         // Prepare logs dir and runid
         let (run_id, start_time) = self.generate_runid();
         let log_dir = self.prepare_logs_dir(&crate_info, &run_id)?;
-        let run_info = self.dump_metadata(&run_id, &profile, &log_dir, start_time)?;
+        let run_info = self.dump_metadata(&run_id, crate_info, &profile, &log_dir, start_time)?;
+        self.pre_benchmarking_checks(&run_info)?;
         // Run benchmarks
         let mut runner = bench_runner::BenchRunner::new(crate_info.name.clone(), &run_info);
         runner.run(&log_dir)?;
@@ -241,7 +238,6 @@ impl RunArgs {
     pub fn run(&self) -> anyhow::Result<()> {
         // Pre-benchmarking checks
         let crate_info = self.load_crate_info()?;
-        self.pre_benchmarking_checks()?;
         // Reproduce a previous run?
         if self.config.is_some() {
             return self.reproduce_run();
