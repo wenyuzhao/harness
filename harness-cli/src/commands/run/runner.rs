@@ -19,6 +19,7 @@ pub struct BenchRunner<'a> {
     /// Benchmark profile
     run: &'a RunInfo,
     logdir: Option<PathBuf>,
+    scratch_dir: PathBuf,
 }
 
 impl<'a> BenchRunner<'a> {
@@ -27,7 +28,25 @@ impl<'a> BenchRunner<'a> {
             benches: Vec::new(),
             run,
             logdir: None,
+            scratch_dir: run.crate_info.target_dir.join("scratch"),
         }
+    }
+
+    fn setup_before_benchmarking(&self) -> anyhow::Result<()> {
+        std::env::set_var(
+            "HARNESS_BENCH_SCRATCH_DIR",
+            self.scratch_dir.to_str().unwrap(),
+        );
+        std::fs::create_dir_all(&self.scratch_dir)?;
+        Ok(())
+    }
+
+    fn setup_before_invocation(&self) -> anyhow::Result<()> {
+        if self.scratch_dir.exists() {
+            std::fs::remove_dir(&self.scratch_dir)?;
+        }
+        std::fs::create_dir_all(&self.scratch_dir)?;
+        Ok(())
     }
 
     /// Collect all available benchmarks
@@ -79,6 +98,8 @@ impl<'a> BenchRunner<'a> {
 
     /// Run one benchmark with one build, for N iterations.
     pub fn test_run(&self, bench: &str, build_name: &str) -> anyhow::Result<()> {
+        self.setup_before_benchmarking()?;
+        self.setup_before_invocation()?;
         let build = self.run.profile.builds.get(build_name).unwrap();
         let mut cmd = Command::new("cargo");
         cmd.args(["bench", "--bench", bench])
@@ -129,6 +150,7 @@ impl<'a> BenchRunner<'a> {
         invocation: usize,
     ) -> anyhow::Result<()> {
         std::fs::create_dir_all(log_dir)?;
+        self.setup_before_invocation()?;
         let log_file = log_dir.join(format!("{}.{}.log", bench, build_name));
         // Checkout branch
         if let Some(commit) = &build.commit {
@@ -227,6 +249,7 @@ impl<'a> BenchRunner<'a> {
         self.logdir = Some(log_dir.to_owned());
         self.collect_benches()?;
         self.print_before_run();
+        self.setup_before_benchmarking()?;
         let name_len = self.max_bench_name_len() + 3;
         for bench in &self.benches {
             print!("{}", bench.blue().bold());
