@@ -28,7 +28,7 @@ impl<'a> BenchRunner<'a> {
             benches: Vec::new(),
             run,
             logdir: None,
-            scratch_dir: run.crate_info.target_dir.join("scratch"),
+            scratch_dir: run.crate_info.target_dir.join("harness").join("scratch"),
         }
     }
 
