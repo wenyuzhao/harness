@@ -25,6 +25,9 @@ TODO:
 - [x] Result reporting
 - [x] Test runnner
 - [x] Scratch folder
+- [x] Default to compare HAED vs HEAD~1
+- [x] Restore git states after benchmarking
+- [ ] Handle no result cases
 - [ ] Documentation
 - [ ] Benchmark subsetting
 - [ ] Comments for public api
