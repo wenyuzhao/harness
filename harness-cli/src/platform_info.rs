@@ -88,10 +88,12 @@ fn get_logged_in_users() -> anyhow::Result<Vec<String>> {
     std::process::Command::new("users")
         .output()
         .map(|o| {
-            String::from_utf8_lossy(&o.stdout)
+            let mut users = String::from_utf8_lossy(&o.stdout)
                 .split_whitespace()
                 .map(|s| s.to_owned())
-                .collect()
+                .collect::<Vec<_>>();
+            users.dedup();
+            users
         })
         .map_err(|e| e.into())
 }
