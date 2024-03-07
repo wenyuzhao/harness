@@ -13,7 +13,9 @@ pub(crate) mod data;
 pub struct ReportArgs {
     /// The run id to report. Default to the latest run.
     pub run_id: Option<String>,
-    /// The baseline build name to compare with.
+    #[clap(long, default_value = "false")]
+    pub norm: bool,
+    /// The baseline build name to normalize to.
     /// If not specified, the one specified in the profile will be used.
     #[clap(long)]
     pub baseline: Option<String>,
@@ -57,7 +59,15 @@ impl ReportArgs {
         let crate_info = self.load_crate_info()?;
         let log_dir = self.find_log_dir(&crate_info)?;
         let config = RunInfo::load(&log_dir.join("config.toml"))?;
-        let baseline = self.baseline.clone().or(config.profile.baseline);
+        let baseline = if self.norm {
+            let b = self.baseline.clone().or(config.profile.baseline);
+            if b.is_none() {
+                anyhow::bail!("No baseline specified");
+            }
+            b
+        } else {
+            None
+        };
         // Load benchmark result
         let results_csv = log_dir.join("results.csv");
         if !results_csv.exists() {
@@ -107,20 +117,9 @@ impl ReportArgs {
         printer.add("\n## Mean Over All Invocations\n\n");
         printer.add_dataframe_with_ci(&avg_df, &ci_df);
         printer.add("\n## Summary\n");
-        for mut summary in summaries {
-            if summary.name == "time" {
-                summary.name = "time (ms)".to_owned();
-            }
-            printer.add(format!("\n**{}**:\n\n", summary.name));
+        for summary in summaries {
             printer.add_metric_summary(&summary);
         }
-        // if let Some(df) = normed_summary_df {
-        //     printer.add(format!(
-        //         "\n## Summary (Normalized to: `{}`)\n\n",
-        //         self.baseline.as_ref().unwrap()
-        //     ));
-        //     printer.add_dataframe(&df);
-        // }
         printer.dump();
         Ok(())
     }

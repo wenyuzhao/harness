@@ -51,6 +51,17 @@ impl MarkdownPrinter {
     }
 
     pub fn add_metric_summary(&mut self, s: &PerMetricSummary) {
+        let name = if s.name == "time" {
+            "time (ms)"
+        } else {
+            &s.name
+        };
+        let norm = if s.normed {
+            format!(" (normalized to *{}*)", s.baseline.as_ref().unwrap())
+        } else {
+            "".to_owned()
+        };
+        self.add(format!("\n**{}**{}:\n\n", name, norm));
         let md_table = self.metric_summary_to_markdown(s);
         self.content.push_str(&md_table);
     }
@@ -354,8 +365,6 @@ impl TextTable {
         }
         // Concat rows
         let table = rows.join("\n") + "\n";
-        println!("{:?}", col_widths);
-        println!("{:?}", seg_widths);
         table
     }
 }

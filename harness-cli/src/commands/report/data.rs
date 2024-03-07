@@ -28,6 +28,7 @@ pub fn mean_over_invocations(df: &DataFrame) -> anyhow::Result<(DataFrame, DataF
 pub(crate) struct PerMetricSummary {
     pub name: String,
     pub normed: bool,
+    pub baseline: Option<String>,
     pub df: DataFrame,
     pub min_names: Vec<String>,
     pub max_names: Vec<String>,
@@ -72,6 +73,7 @@ pub fn per_metric_summary(
                 normed: false,
                 min_names: vec![],
                 max_names: vec![],
+                baseline: baseline.map(|s| s.to_owned()),
             };
             // min bench names
             let build_col = df_metric_unnormed.column("build")?;
