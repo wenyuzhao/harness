@@ -63,14 +63,14 @@ impl ReportArgs {
         }
         let raw_df = data::get_data(&results_csv)?;
         // Mean over all invocations, group by [bench, build]
-        let bm_df = data::mean_over_invocations(&raw_df)?;
+        let (avg_df, ci_df) = data::mean_over_invocations(&raw_df)?;
         // Mean and geomean over all benchmarks, group by builds
-        let summary_df = data::geomean_over_benchmarks(&raw_df)?;
-        let normed_summary_df = if let Some(baseline) = &self.baseline {
-            Some(data::normalize(&summary_df, baseline)?)
-        } else {
-            None
-        };
+        let summary_dfs = data::geomean_over_benchmarks(&avg_df)?;
+        // let normed_summary_df = if let Some(baseline) = &self.baseline {
+        //     Some(data::normalize(&summary_df, baseline)?)
+        // } else {
+        //     None
+        // };
         // Print results
         let mut printer = crate::utils::md::MarkdownPrinter::new();
         printer.add(format!(
@@ -103,16 +103,22 @@ impl ReportArgs {
             config.platform.memory_size >> 30
         ));
         printer.add("\n## Mean Over All Invocations\n\n");
-        printer.add_dataframe(&bm_df);
-        printer.add("\n## Summary\n\n");
-        printer.add_dataframe(&summary_df);
-        if let Some(df) = normed_summary_df {
-            printer.add(format!(
-                "\n## Summary (Normalized to: `{}`)\n\n",
-                self.baseline.as_ref().unwrap()
-            ));
+        printer.add_dataframe_with_ci(&avg_df, &ci_df);
+        printer.add("\n## Summary\n");
+        for (mut metric, df) in summary_dfs {
+            if metric == "time" {
+                metric = "time (ms)".to_owned();
+            }
+            printer.add(format!("\n**{}**:\n\n", metric));
             printer.add_dataframe(&df);
         }
+        // if let Some(df) = normed_summary_df {
+        //     printer.add(format!(
+        //         "\n## Summary (Normalized to: `{}`)\n\n",
+        //         self.baseline.as_ref().unwrap()
+        //     ));
+        //     printer.add_dataframe(&df);
+        // }
         printer.dump();
         Ok(())
     }
