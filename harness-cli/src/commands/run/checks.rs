@@ -1,5 +1,4 @@
 use colored::{Colorize, CustomColor};
-use libloading::Library;
 use once_cell::sync::Lazy;
 
 use crate::platform_info::RunInfo;
@@ -38,14 +37,30 @@ impl<'a> PreBenchmarkingChecker<'a> {
         self.warnings.push(msg.as_ref().to_owned());
     }
 
-    fn check_build(&mut self) -> anyhow::Result<()> {
-        let status = std::process::Command::new("cargo")
-            .arg("bench")
-            .arg("--no-run")
-            .output()?
-            .status;
-        if !status.success() {
-            anyhow::bail!("Failed to build the benchmarks.");
+    fn check_build_configs(&mut self) -> anyhow::Result<()> {
+        // No builds or only one build?
+        let builds = self.run.profile.builds.len();
+        if builds == 0 {
+            anyhow::bail!("No builds found in the profile.");
+        }
+        if builds == 1 {
+            self.warn(format!(
+                "It's recommended to always have more than one builds."
+            ));
+        }
+        // Identical builds?
+        let names = self.run.profile.builds.keys().cloned().collect::<Vec<_>>();
+        for i in 0..names.len() {
+            for j in i + 1..names.len() {
+                let (n1, n2) = (&names[i], &names[j]);
+                if self.run.profile.builds[n1] == self.run.profile.builds[n2] {
+                    self.warn(format!(
+                        "Builds {} and {} are identical.",
+                        n1.italic(),
+                        n2.italic(),
+                    ));
+                }
+            }
         }
         Ok(())
     }
@@ -78,8 +93,8 @@ impl<'a> PreBenchmarkingChecker<'a> {
     }
 
     fn check_common(&mut self) -> anyhow::Result<()> {
-        self.check_build()?;
         self.check_dirty_git_worktree()?;
+        self.check_build_configs()?;
         Ok(())
     }
 
