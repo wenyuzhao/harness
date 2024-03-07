@@ -75,14 +75,18 @@ impl<'a> Drop for BenchTimer<'a> {
 }
 
 pub struct Bencher {
+    current_iteration: usize,
+    max_iterations: usize,
     elapsed: Mutex<Option<Duration>>,
     probes: RefCell<ProbeManager>,
     extra_stats: Mutex<Vec<(String, Box<dyn Value>)>>,
 }
 
 impl Bencher {
-    fn new() -> Self {
+    fn new(max_iterations: usize) -> Self {
         Self {
+            current_iteration: 0,
+            max_iterations,
             elapsed: Mutex::new(None),
             probes: RefCell::new(ProbeManager::new()),
             extra_stats: Mutex::new(Vec::new()),
@@ -97,6 +101,11 @@ impl Bencher {
     fn harness_end(&self) {
         let mut probes = self.probes.borrow_mut();
         probes.harness_end();
+    }
+
+    /// Returns true if this is the last iteration
+    pub fn is_timing_iteration(&self) -> bool {
+        self.current_iteration == self.max_iterations - 1
     }
 
     pub fn start_timing(&self) -> BenchTimer {
@@ -149,7 +158,7 @@ impl SingleBenchmarkRunner {
             args: BenchArgs::parse(),
             name,
             crate_name,
-            bencher: Bencher::new(),
+            bencher: Bencher::new(if is_single_shot { 1 } else { args.iterations }),
             benchmark,
             is_single_shot,
         }
@@ -166,6 +175,7 @@ impl SingleBenchmarkRunner {
 
     fn run_iterative(&mut self, iterations: usize) {
         for i in 0..iterations {
+            self.bencher.current_iteration = i;
             let is_timing_iteration = i == iterations - 1;
             let (start_label, end_label) = if !is_timing_iteration {
                 (
