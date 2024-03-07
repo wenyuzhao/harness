@@ -10,7 +10,7 @@ mod meta;
 
 /// Benchmark harness CLI
 #[derive(Parser)]
-pub struct Cli {
+struct Cli {
     #[command(subcommand)]
     command: Commands,
 }
@@ -23,7 +23,7 @@ pub enum Commands {
 
 /// Plot benchmark results
 #[derive(Parser)]
-pub struct PlotArgs {}
+struct PlotArgs {}
 
 static CMD_ARGS: Lazy<Cli> = Lazy::new(|| {
     if std::env::var("RUST_LOG").is_err() {
@@ -36,7 +36,8 @@ static CMD_ARGS: Lazy<Cli> = Lazy::new(|| {
     Cli::parse_from(args)
 });
 
-fn main() -> anyhow::Result<()> {
+#[doc(hidden)]
+pub fn main() -> anyhow::Result<()> {
     let result = match &CMD_ARGS.command {
         Commands::Run(cmd) => cmd.run(),
         Commands::Report(cmd) => cmd.run(),

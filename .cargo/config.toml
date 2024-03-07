@@ -1,2 +1,2 @@
 [alias]
-_harness = "run --package harness-cli --"
+_harness = "run --package harness-cli --bin harness --"
