@@ -3,9 +3,9 @@ use std::cell::RefCell;
 use colored::{Colorize, CustomColor};
 use once_cell::sync::Lazy;
 
-use crate::platform_info::RunInfo;
+use crate::meta::RunInfo;
 #[cfg(target_os = "linux")]
-use crate::platform_info::PLATFORM_INFO;
+use crate::meta::PLATFORM_INFO;
 
 static BG: Lazy<CustomColor> = Lazy::new(|| CustomColor::new(0x23, 0x23, 0x23));
 

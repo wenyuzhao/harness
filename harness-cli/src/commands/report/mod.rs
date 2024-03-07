@@ -4,7 +4,7 @@ use cargo_metadata::MetadataCommand;
 use chrono::{DateTime, Utc};
 use clap::Parser;
 
-use crate::platform_info::RunInfo;
+use crate::meta::RunInfo;
 
 mod data;
 

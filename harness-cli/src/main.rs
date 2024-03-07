@@ -6,7 +6,7 @@ use once_cell::sync::Lazy;
 mod utils;
 mod commands;
 mod config;
-mod platform_info;
+mod meta;
 
 /// Benchmark harness CLI
 #[derive(Parser)]

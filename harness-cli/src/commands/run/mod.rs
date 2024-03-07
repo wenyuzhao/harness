@@ -7,7 +7,7 @@ use termimad::crossterm::style::Stylize;
 
 use crate::{
     config::{self, Profile},
-    platform_info::{CrateInfo, RunInfo},
+    meta::{CrateInfo, RunInfo},
 };
 
 mod checks;
@@ -43,7 +43,7 @@ impl RunArgs {
     fn generate_runid(&self) -> (String, DateTime<chrono::Local>) {
         let t = chrono::Local::now();
         let time = t.format("%Y-%m-%d-%a-%H%M%S").to_string();
-        let host = crate::platform_info::PLATFORM_INFO.host.clone();
+        let host = crate::meta::PLATFORM_INFO.host.clone();
         let run_id = format!("{}-{}-{}", self.profile, host, time);
         (run_id, t)
     }
