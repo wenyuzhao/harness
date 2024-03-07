@@ -53,15 +53,15 @@ impl RunInfo {
     }
 
     pub fn new(
-        crate_info: &CrateInfo,
-        profile: &Profile,
+        crate_info: CrateInfo,
+        profile: Profile,
         runid: String,
         start_time: DateTime<Local>,
     ) -> Self {
         Self {
-            crate_info: crate_info.clone(),
+            crate_info: crate_info,
             platform: PLATFORM_INFO.clone(),
-            profile: profile.clone(),
+            profile: profile,
             runid,
             commit: Self::get_git_hash(),
             start_timestamp_utc: start_time.to_utc().timestamp(),

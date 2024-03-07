@@ -14,8 +14,6 @@ use crate::{config, meta::RunInfo, print_md};
 /// Benchmark running info
 #[derive(Debug)]
 pub struct BenchRunner<'a> {
-    /// Name of the current crate
-    crate_name: String,
     /// Names of the benches to run
     benches: Vec<String>,
     /// Benchmark profile
@@ -24,9 +22,8 @@ pub struct BenchRunner<'a> {
 }
 
 impl<'a> BenchRunner<'a> {
-    pub fn new(crate_name: String, run: &'a RunInfo) -> Self {
+    pub fn new(run: &'a RunInfo) -> Self {
         Self {
-            crate_name,
             benches: Vec::new(),
             run,
             logdir: None,
@@ -127,7 +124,7 @@ impl<'a> BenchRunner<'a> {
             .args(["--", "-n"])
             .arg(format!("{}", self.run.profile.iterations))
             .arg("--overwrite-crate-name")
-            .arg(&self.crate_name)
+            .arg(&self.run.crate_info.name)
             .arg("--overwrite-benchmark-name")
             .arg(bench)
             .arg("--current-invocation")

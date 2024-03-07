@@ -83,19 +83,11 @@ impl RunArgs {
 
     /// Dump metadata before running all benchmarks
     /// This include platform info, env variables, and current git commit that the profile is loaded from.
-    fn dump_metadata(
-        &self,
-        runid: &str,
-        crate_info: &CrateInfo,
-        profile: &Profile,
-        log_dir: &PathBuf,
-        start_time: DateTime<Local>,
-    ) -> anyhow::Result<RunInfo> {
+    fn dump_metadata(&self, log_dir: &PathBuf, run_info: &RunInfo) -> anyhow::Result<()> {
         // dump to file
         std::fs::create_dir_all(log_dir)?;
-        let run_info = RunInfo::new(crate_info, profile, runid.to_owned(), start_time);
         std::fs::write(log_dir.join("config.toml"), toml::to_string(&run_info)?)?;
-        Ok(run_info)
+        Ok(())
     }
 
     fn update_metadata_on_finish(
@@ -112,7 +104,7 @@ impl RunArgs {
 
     fn run_benchmarks(
         &self,
-        crate_info: &CrateInfo,
+        crate_info: CrateInfo,
         mut profile: Profile,
         old_run: Option<&RunInfo>,
     ) -> anyhow::Result<()> {
@@ -123,16 +115,18 @@ impl RunArgs {
         if let Some(iterations) = self.iterations {
             profile.iterations = iterations;
         }
-        // Prepare logs dir and runid
-        let (run_id, start_time) = self.generate_runid();
-        let log_dir = self.prepare_logs_dir(&crate_info, &run_id)?;
-        let run_info = self.dump_metadata(&run_id, crate_info, &profile, &log_dir, start_time)?;
+        // Checks
+        let (runid, start_time) = self.generate_runid();
+        let run_info = RunInfo::new(crate_info, profile, runid.clone(), start_time);
         if let Some(old) = old_run {
             self.reproducibility_checks(old, &run_info)?;
         }
         self.pre_benchmarking_checks(&run_info)?;
+        // Initialize logs dir
+        let log_dir = self.prepare_logs_dir(&run_info.crate_info, &runid)?;
         // Run benchmarks
-        let mut runner = runner::BenchRunner::new(crate_info.name.clone(), &run_info);
+        self.dump_metadata(&log_dir, &run_info)?;
+        let mut runner = runner::BenchRunner::new(&run_info);
         runner.run(&log_dir)?;
         self.update_metadata_on_finish(&log_dir, run_info)?;
         Ok(())
@@ -178,7 +172,7 @@ impl RunArgs {
             }
         }
         // Run benchmarks
-        self.run_benchmarks(&crate_info, profile, Some(&run_info))?;
+        self.run_benchmarks(crate_info, profile, Some(&run_info))?;
         Ok(())
     }
 
@@ -195,7 +189,7 @@ impl RunArgs {
             anyhow::bail!("Could not find harness profile `{}`", self.profile);
         };
         // Run benchmarks
-        self.run_benchmarks(&crate_info, profile, None)?;
+        self.run_benchmarks(crate_info, profile, None)?;
         Ok(())
     }
 }
