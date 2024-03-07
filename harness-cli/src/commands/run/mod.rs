@@ -197,6 +197,7 @@ impl RunArgs {
                 norm: baseline.is_some(),
                 baseline,
             };
+            println!();
             report.run()?;
         }
         Ok(())
