@@ -77,7 +77,7 @@ impl ReportArgs {
         // Mean over all invocations, group by [bench, build]
         let (avg_df, ci_df) = data::mean_over_invocations(&raw_df)?;
         // Mean and geomean over all benchmarks, group by builds
-        let summaries = data::per_metric_summary(&avg_df, baseline.as_ref().map(|s| s.as_str()))?;
+        let summaries = data::per_metric_summary(&avg_df, baseline.as_deref())?;
         // let normed_summary_df = if let Some(baseline) = &self.baseline {
         //     Some(data::normalize(&summary_df, baseline)?)
         // } else {
@@ -95,7 +95,6 @@ impl ReportArgs {
             DateTime::<Utc>::from_timestamp(config.start_timestamp_utc, 0)
                 .unwrap()
                 .format("%Y-%m-%d %H:%M:%S")
-                .to_string()
         ));
         if let Some(t) = config.finish_timestamp_utc {
             printer.add(format!(
@@ -103,7 +102,6 @@ impl ReportArgs {
                 DateTime::<Utc>::from_timestamp(t, 0)
                     .unwrap()
                     .format("%Y-%m-%d %H:%M:%S")
-                    .to_string()
             ));
         } else {
             printer.add("* Finish Time (UTC): `N/A`\n");

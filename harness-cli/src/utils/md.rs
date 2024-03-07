@@ -73,7 +73,7 @@ impl MarkdownPrinter {
             AnyValue::Int8(v) => TableCell::Int(*v as i64),
             AnyValue::Int16(v) => TableCell::Int(*v as i64),
             AnyValue::Int32(v) => TableCell::Int(*v as i64),
-            AnyValue::Int64(v) => TableCell::Int(*v as i64),
+            AnyValue::Int64(v) => TableCell::Int(*v),
             AnyValue::UInt8(v) => TableCell::Int(*v as i64),
             AnyValue::UInt16(v) => TableCell::Int(*v as i64),
             AnyValue::UInt32(v) => TableCell::Int(*v as i64),
@@ -271,11 +271,12 @@ struct TextTable {
 }
 
 impl TextTable {
-    fn get_column_widths(&self, seg_widths: &Vec<Vec<usize>>) -> Vec<usize> {
+    fn get_column_widths(&self, seg_widths: &[Vec<usize>]) -> Vec<usize> {
         let mut col_widths = vec![];
-        for i in 0..self.headers.len() {
+        // for i in 0..self.headers.len() {
+        for (i, ws) in seg_widths.iter().enumerate() {
             let header_width = self.headers[i].len();
-            let cell_widths = seg_widths[i].iter().sum::<usize>() + seg_widths[i].len() - 1;
+            let cell_widths = ws.iter().sum::<usize>() + ws.len() - 1;
             col_widths.push(usize::max(header_width, cell_widths));
         }
         col_widths
@@ -364,7 +365,6 @@ impl TextTable {
             rows.push(bottom_row);
         }
         // Concat rows
-        let table = rows.join("\n") + "\n";
-        table
+        rows.join("\n") + "\n"
     }
 }

@@ -46,9 +46,7 @@ impl<'a> PreBenchmarkingChecker<'a> {
             anyhow::bail!("No builds found in the profile.");
         }
         if builds == 1 {
-            self.warn(format!(
-                "It's recommended to always have more than one builds."
-            ));
+            self.warn("It's recommended to always have more than one builds.");
         }
         // Identical builds?
         let names = self.run.profile.builds.keys().cloned().collect::<Vec<_>>();
@@ -71,7 +69,7 @@ impl<'a> PreBenchmarkingChecker<'a> {
                     commit = commit.trim_end_matches("-dirty").to_owned();
                 }
                 let verified = std::process::Command::new("git")
-                    .args(&["cat-file", "-e", &commit])
+                    .args(["cat-file", "-e", &commit])
                     .current_dir(&self.run.crate_info.target_dir)
                     .output()
                     .map(|o| o.status.success())
@@ -119,7 +117,7 @@ impl<'a> PreBenchmarkingChecker<'a> {
             if !self.allow_dirty {
                 anyhow::bail!("Git worktree is dirty.");
             }
-            self.warn("Git worktree is dirty.".to_string());
+            self.warn("Git worktree is dirty.");
         }
         Ok(())
     }
@@ -225,13 +223,13 @@ impl<'a, 'b> ReproducibilityChecker<'a, 'b> {
     fn check_changed_mem(&self, name: impl AsRef<str>, old: usize, new: usize) {
         let to_gb = |x: usize| format!("{:.1}GB", x as f64 / 1024.0 / 1024.0);
         if old != new {
-            self.warn_changed(name, &to_gb(old), &to_gb(new));
+            self.warn_changed(name, to_gb(old), to_gb(new));
         }
     }
 
     fn check_changed_int(&self, name: impl AsRef<str>, old: usize, new: usize) {
         if old != new {
-            self.warn_changed(name, &format!("{}", old), &format!("{}", new));
+            self.warn_changed(name, format!("{}", old), format!("{}", new));
         }
     }
 
@@ -252,9 +250,9 @@ impl<'a, 'b> ReproducibilityChecker<'a, 'b> {
                     "   {} {}: {} {} {}\n",
                     "•".bright_red(),
                     name,
-                    old.italic().to_string(),
+                    old.italic(),
                     "➔".bold(),
-                    new.italic().to_string(),
+                    new.italic(),
                 );
             };
             for (k, v) in &new.platform.env {
@@ -315,7 +313,7 @@ fn dump_warnings(title: &str, warnings: &[String]) {
     for msg in warnings {
         eprintln!("{} {}", "•".bright_red(), msg.red());
     }
-    println!("");
+    println!();
 }
 
 impl super::RunArgs {

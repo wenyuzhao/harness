@@ -104,10 +104,9 @@ impl<'a> BenchRunner<'a> {
             }
         }
         let outputs = OpenOptions::new()
-            .write(true)
             .append(true)
             .create(true)
-            .open(&log_file)?;
+            .open(log_file)?;
         let errors = outputs.try_clone()?;
         let mut outputs2 = outputs.try_clone()?;
         let mut cmd = Command::new("cargo");
@@ -165,7 +164,7 @@ impl<'a> BenchRunner<'a> {
         print_md!("* builds: `{}`", self.run.profile.builds.len());
         print_md!("* invocations: `{}`", self.run.profile.invocations);
         print_md!("* iterations: `{}`", self.run.profile.iterations);
-        println!("");
+        println!();
         println!("{}\n", "Running Benchmarks...".blue());
     }
 

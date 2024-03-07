@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use cargo_metadata::MetadataCommand;
 use chrono::{DateTime, Local};
@@ -95,11 +95,7 @@ impl RunArgs {
         Ok(())
     }
 
-    fn update_metadata_on_finish(
-        &self,
-        log_dir: &PathBuf,
-        mut meta: RunInfo,
-    ) -> anyhow::Result<()> {
+    fn update_metadata_on_finish(&self, log_dir: &Path, mut meta: RunInfo) -> anyhow::Result<()> {
         assert!(log_dir.exists());
         assert!(meta.finish_timestamp_utc.is_none());
         meta.finish_timestamp_utc = Some(Local::now().to_utc().timestamp());
@@ -164,7 +160,7 @@ impl RunArgs {
         println!("{}", format!("Checkout git commit: {}\n", commit).magenta());
         if RunInfo::get_git_hash() != run_info.commit {
             let output = std::process::Command::new("git")
-                .args(&["checkout", &commit])
+                .args(["checkout", &commit])
                 .output()?;
             if !output.status.success() {
                 anyhow::bail!(

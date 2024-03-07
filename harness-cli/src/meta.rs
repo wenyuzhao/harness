@@ -59,9 +59,9 @@ impl RunInfo {
         start_time: DateTime<Local>,
     ) -> Self {
         Self {
-            crate_info: crate_info,
+            crate_info,
             platform: PLATFORM_INFO.clone(),
-            profile: profile,
+            profile,
             runid,
             commit: Self::get_git_hash(),
             start_timestamp_utc: start_time.to_utc().timestamp(),

@@ -81,7 +81,7 @@ impl ProbeManager {
             .map(|s| s.trim())
             .filter(|s| !s.is_empty());
         for probe in probes {
-            let dylib_name = probe.replace("-", "_");
+            let dylib_name = probe.replace('-', "_");
             let dylib_filename = if cfg!(target_os = "macos") {
                 format!("lib{dylib_name}.dylib")
             } else if cfg!(target_os = "linux") {
