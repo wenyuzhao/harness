@@ -1,6 +1,9 @@
+use std::process::Command;
+
 use clap::{Parser, Subcommand};
 use colored::Colorize;
 use git_info::types::GitInfo;
+use meta::RunInfo;
 use once_cell::sync::Lazy;
 
 #[macro_use]
@@ -40,18 +43,26 @@ static CMD_ARGS: Lazy<Cli> = Lazy::new(|| {
 fn restore_git_state(prev: &GitInfo) {
     let curr = git_info::get();
     if prev.head.last_commit_hash != curr.head.last_commit_hash {
-        let mut command = std::process::Command::new("git");
-        command
-            .arg("checkout")
-            .arg(prev.head.last_commit_hash.as_ref().unwrap());
-        if let Ok(status) = command.status() {
-            if !status.success() {
-                eprintln!(
-                    "❌ {}: Failed to checkout to previous commit",
-                    "ERROR".red().bold()
-                );
-                std::process::exit(1);
+        let checkout_target = if let Some(branch) = prev.current_branch.as_ref() {
+            let hash = RunInfo::get_branch_last_git_hash(branch);
+            if Some(hash) == prev.head.last_commit_hash {
+                branch
+            } else {
+                prev.head.last_commit_hash.as_ref().unwrap()
             }
+        } else {
+            prev.head.last_commit_hash.as_ref().unwrap()
+        };
+        let status = Command::new("git")
+            .args(["checkout", checkout_target])
+            .status();
+        if !status.as_ref().map(|s| s.success()).unwrap_or(false) {
+            eprintln!(
+                "❌ {}: Failed to restore previous commit: {}",
+                "ERROR".red().bold(),
+                checkout_target
+            );
+            std::process::exit(1);
         }
     }
 }

@@ -63,6 +63,16 @@ impl RunInfo {
             .unwrap_or_else(|| "unknown".to_owned())
     }
 
+    pub fn get_branch_last_git_hash(branch: &str) -> String {
+        Command::new("git")
+            .args(["rev-parse", branch])
+            .output()
+            .ok()
+            .and_then(|o| String::from_utf8(o.stdout).ok())
+            .map(|s| s.trim().to_owned())
+            .unwrap_or_else(|| "unknown".to_owned())
+    }
+
     pub fn new(
         crate_info: CrateInfo,
         profile: Profile,
