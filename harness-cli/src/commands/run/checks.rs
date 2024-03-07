@@ -1,6 +1,9 @@
 #[cfg(target_os = "linux")]
 use crate::platform_info::PLATFORM_INFO;
-use colored::Colorize;
+use colored::{Colorize, CustomColor};
+use once_cell::sync::Lazy;
+
+static BG: Lazy<CustomColor> = Lazy::new(|| CustomColor::new(0x23, 0x23, 0x23));
 
 struct PreBenchmarkingChecker {
     warnings: Vec<String>,
@@ -47,7 +50,12 @@ impl PreBenchmarkingChecker {
         if PLATFORM_INFO.users.len() > 1 {
             let msg = format!(
                 "More than one user logged in: {}",
-                PLATFORM_INFO.users.join(", ")
+                PLATFORM_INFO
+                    .users
+                    .iter()
+                    .map(|u| u.on_custom_color(*BG).to_string())
+                    .collect::<Vec<_>>()
+                    .join(", ")
             );
             if self.allow_multi_user {
                 self.warn(msg);
@@ -61,9 +69,21 @@ impl PreBenchmarkingChecker {
             .iter()
             .all(|g| g == "performance")
         {
-            let msg = format!(
-                "Not all scaling governors are set to `performance`: [{}]",
-                PLATFORM_INFO.scaling_governor.join(", ")
+            let sg = PLATFORM_INFO.scaling_governor.clone();
+            let mut sg_dedup = sg.clone();
+            sg_dedup.dedup();
+            let sg_info = sg_dedup
+                .iter()
+                .map(|x| (x, sg.iter().filter(|y| x == *y).count()))
+                .map(|(x, c)| format!("{} × {}", x, c).on_custom_color(*BG).to_string())
+                .collect::<Vec<_>>()
+                .join(", ");
+
+            let msg =
+                format!(
+                "Not all scaling governors are set to performance: {}. See {} for more details.",
+                sg_info.italic(),
+                "https://wiki.archlinux.org/title/CPU_frequency_scaling".italic().underline()
             );
             if self.allow_any_scaling_governor {
                 self.warn(msg);
