@@ -8,6 +8,7 @@ use termimad::crossterm::style::Stylize;
 use crate::{
     config::{self, BuildConfig, Profile},
     meta::{CrateInfo, RunInfo},
+    utils,
 };
 
 use super::report::ReportArgs;
@@ -126,15 +127,15 @@ impl RunArgs {
         // Default build configs
         if profile.builds.is_empty() {
             let mut head = BuildConfig::default();
-            head.commit = Some(RunInfo::get_git_hash());
+            head.commit = Some(utils::git::get_git_hash()?);
             profile.builds.insert("HEAD".to_owned(), head);
             let mut head_1 = BuildConfig::default();
-            head_1.commit = Some(RunInfo::get_second_last_git_hash());
+            head_1.commit = Some(utils::git::get_second_last_git_hash()?);
             profile.builds.insert("HEAD~1".to_owned(), head_1);
         }
         // Checks
         let (runid, start_time) = self.generate_runid();
-        let run_info = RunInfo::new(crate_info, profile, runid.clone(), start_time);
+        let run_info = RunInfo::new(crate_info, profile, runid.clone(), start_time)?;
         if let Some(old) = old_run {
             self.reproducibility_checks(old, &run_info)?;
         }
@@ -174,7 +175,7 @@ impl RunArgs {
             commit = commit.trim_end_matches("-dirty").to_owned();
         }
         println!("{}", format!("Checkout git commit: {}\n", commit).magenta());
-        if RunInfo::get_git_hash() != run_info.commit {
+        if utils::git::get_git_hash()? != run_info.commit {
             let output = std::process::Command::new("git")
                 .args(["checkout", &commit])
                 .output()?;
@@ -215,7 +216,7 @@ impl RunArgs {
             self.build.as_ref().unwrap()
         };
         let (runid, start_time) = self.generate_runid();
-        let run_info = RunInfo::new(crate_info.clone(), profile, runid.clone(), start_time);
+        let run_info = RunInfo::new(crate_info.clone(), profile, runid.clone(), start_time)?;
         let runner = runner::BenchRunner::new(&run_info);
         runner.test_run(bench, &build)?;
         Ok(())

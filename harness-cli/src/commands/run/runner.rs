@@ -9,7 +9,7 @@ use std::{
 use cargo_metadata::MetadataCommand;
 use colored::Colorize;
 
-use crate::{config, meta::RunInfo, print_md};
+use crate::{config, meta::RunInfo, print_md, utils};
 
 /// Benchmark running info
 #[derive(Debug)]
@@ -95,7 +95,11 @@ impl<'a> BenchRunner<'a> {
         // cargo features
         writeln!(f, "features: {}", build.features.join(","))?;
         // git commit
-        writeln!(f, "commit: {}", RunInfo::get_git_hash())?;
+        writeln!(
+            f,
+            "commit: {}",
+            utils::git::get_git_hash().unwrap_or_else(|_| "unknown".to_owned())
+        )?;
         writeln!(f, "---")?;
         Ok(())
     }

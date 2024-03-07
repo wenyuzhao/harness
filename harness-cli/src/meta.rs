@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use std::process::Command;
 use sysinfo::{CpuExt, System, SystemExt};
 
-use crate::config::Profile;
+use crate::{config::Profile, utils};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct CrateInfo {
@@ -41,53 +41,21 @@ pub struct RunInfo {
 }
 
 impl RunInfo {
-    pub fn get_git_hash() -> String {
-        let git_info = git_info::get();
-        let mut hash = git_info
-            .head
-            .last_commit_hash
-            .unwrap_or("unknown".to_owned());
-        if git_info.dirty.unwrap_or_default() {
-            hash += "-dirty";
-        }
-        hash
-    }
-
-    pub fn get_second_last_git_hash() -> String {
-        Command::new("git")
-            .args(["rev-parse", "@~"])
-            .output()
-            .ok()
-            .and_then(|o| String::from_utf8(o.stdout).ok())
-            .map(|s| s.trim().to_owned())
-            .unwrap_or_else(|| "unknown".to_owned())
-    }
-
-    pub fn get_branch_last_git_hash(branch: &str) -> String {
-        Command::new("git")
-            .args(["rev-parse", branch])
-            .output()
-            .ok()
-            .and_then(|o| String::from_utf8(o.stdout).ok())
-            .map(|s| s.trim().to_owned())
-            .unwrap_or_else(|| "unknown".to_owned())
-    }
-
     pub fn new(
         crate_info: CrateInfo,
         profile: Profile,
         runid: String,
         start_time: DateTime<Local>,
-    ) -> Self {
-        Self {
+    ) -> anyhow::Result<Self> {
+        Ok(Self {
             crate_info,
             platform: PLATFORM_INFO.clone(),
             profile,
             runid,
-            commit: Self::get_git_hash(),
+            commit: utils::git::get_git_hash()?,
             start_timestamp_utc: start_time.to_utc().timestamp(),
             finish_timestamp_utc: None,
-        }
+        })
     }
 
     pub fn load(path: &PathBuf) -> anyhow::Result<Self> {
