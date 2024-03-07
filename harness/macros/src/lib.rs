@@ -6,7 +6,11 @@ use quote::quote;
 #[derive(Debug, FromMeta)]
 struct BenchMacroArgs {
     #[darling(default)]
-    single_shot: bool,
+    oneshot: bool,
+    #[darling(default)]
+    startup: Option<syn::Path>,
+    #[darling(default)]
+    teardown: Option<syn::Path>,
 }
 
 /// Annotation for the harness benchmark struct.
@@ -26,12 +30,16 @@ pub fn bench(attr: TokenStream, item: TokenStream) -> TokenStream {
             return TokenStream::from(e.write_errors());
         }
     };
-    let result = if args.single_shot {
+    let startup = &args.startup;
+    let teardown = &args.teardown;
+    let result = if args.oneshot {
         quote! {
             #input
 
             fn main() {
+                #startup();
                 ::harness::run(file!(), #name, true);
+                #teardown();
             }
         }
     } else {
@@ -39,7 +47,9 @@ pub fn bench(attr: TokenStream, item: TokenStream) -> TokenStream {
             #input
 
             fn main() {
+                #startup();
                 ::harness::run(file!(), #name, false);
+                #teardown();
             }
         }
     };
