@@ -9,8 +9,8 @@ use crate::{
     platform_info::{CrateInfo, RunInfo, PLATFORM_INFO},
 };
 
-mod bench_runner;
 mod checks;
+mod runner;
 
 /// Run all the benchmarks
 #[derive(Parser)]
@@ -123,7 +123,7 @@ impl RunArgs {
         let run_info = self.dump_metadata(&run_id, crate_info, &profile, &log_dir, start_time)?;
         self.pre_benchmarking_checks(&run_info)?;
         // Run benchmarks
-        let mut runner = bench_runner::BenchRunner::new(crate_info.name.clone(), &run_info);
+        let mut runner = runner::BenchRunner::new(crate_info.name.clone(), &run_info);
         runner.run(&log_dir)?;
         self.update_metadata_on_finish(&log_dir, run_info)?;
         Ok(())
