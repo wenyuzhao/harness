@@ -231,14 +231,10 @@ impl<'a, 'b> ReproducibilityChecker<'a, 'b> {
         let new = &self.new;
         self.check_changed("OS", &old.platform.os, &new.platform.os);
         self.check_changed("Arch", &old.platform.arch, &new.platform.arch);
-        self.check_changed(
-            "Kernel",
-            &old.platform.kernel_version,
-            &new.platform.kernel_version,
-        );
+        self.check_changed("Kernel", &old.platform.kernel, &new.platform.kernel);
         self.check_changed("CPU", &old.platform.cpu_model, &new.platform.cpu_model);
-        self.check_changed_mem("Memory", old.platform.memory, new.platform.memory);
-        self.check_changed_mem("Swap", old.platform.swap, new.platform.swap);
+        self.check_changed_mem("Memory", old.platform.memory_size, new.platform.memory_size);
+        self.check_changed_mem("Swap", old.platform.swap_size, new.platform.swap_size);
         self.check_changed("Rust Version", &old.platform.rustc, &new.platform.rustc);
         if old.platform.env != new.platform.env {
             let mut s = "Environment Variables Changed:\n".to_owned();
@@ -292,10 +288,10 @@ impl<'a, 'b> ReproducibilityChecker<'a, 'b> {
         if old.profile.iterations != new.profile.iterations {
             self.check_changed_int("Iterations", old.profile.iterations, new.profile.iterations);
         }
-        if old.default_build_commit.ends_with("-dirty") {
+        if old.commit.ends_with("-dirty") {
             self.warn(format!(
                 "Profile commit {} is dirty. Uncommited changes may affect reproducibility.",
-                old.default_build_commit.italic().on_custom_color(*BG)
+                old.commit.italic().on_custom_color(*BG)
             ));
         }
         Ok(())

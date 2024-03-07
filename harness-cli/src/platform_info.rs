@@ -9,25 +9,34 @@ use crate::config::Profile;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct CrateInfo {
+    /// Crate name
     pub name: String,
+    /// Path to the target directory
     pub target_dir: PathBuf,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct RunInfo {
-    #[serde(rename = "crate")]
-    pub crate_info: CrateInfo,
-    pub platform: PlatformInfo,
-    pub profile: Profile,
+    /// Benchmark run id
     pub runid: String,
+
+    /// Benchmark start time
     #[serde(rename = "start-time-utc")]
     pub start_timestamp_utc: i64,
+
+    /// Benchmark finish time
     #[serde(rename = "finish-time-utc")]
     pub finish_timestamp_utc: Option<i64>,
-    #[serde(rename = "profile-commit")]
-    pub profile_commit: String,
-    #[serde(rename = "default-build-commit")]
-    pub default_build_commit: String,
+
+    /// The commit that the profile is loaded from. This is also used as the default build commit
+    pub commit: String,
+
+    #[serde(rename = "crate")]
+    pub crate_info: CrateInfo,
+
+    pub profile: Profile,
+
+    pub platform: PlatformInfo,
 }
 
 impl RunInfo {
@@ -49,14 +58,12 @@ impl RunInfo {
         runid: String,
         start_time: DateTime<Local>,
     ) -> Self {
-        let commit = Self::get_git_hash();
         Self {
             crate_info: crate_info.clone(),
             platform: PLATFORM_INFO.clone(),
             profile: profile.clone(),
             runid,
-            profile_commit: commit.clone(),
-            default_build_commit: commit,
+            commit: Self::get_git_hash(),
             start_timestamp_utc: start_time.to_utc().timestamp(),
             finish_timestamp_utc: None,
         }
@@ -74,13 +81,13 @@ pub struct PlatformInfo {
     pub os: String,
     pub arch: String,
     #[serde(rename = "kernel-version")]
-    pub kernel_version: String,
+    pub kernel: String,
     #[serde(rename = "cpu-model")]
     pub cpu_model: String,
     #[serde(rename = "cpu-frequency")]
     pub cpu_frequency: Vec<usize>,
-    pub memory: usize,
-    pub swap: usize,
+    pub memory_size: usize,
+    pub swap_size: usize,
     #[cfg(target_os = "linux")]
     pub users: Vec<String>,
     pub processes: usize,
@@ -143,11 +150,11 @@ pub static PLATFORM_INFO: Lazy<PlatformInfo> = Lazy::new(|| {
         host: sys.host_name().unwrap_or(UNKNOWN.to_string()),
         os: sys.long_os_version().unwrap_or(UNKNOWN.to_string()),
         arch: std::env::consts::ARCH.to_string(),
-        kernel_version: sys.kernel_version().unwrap_or(UNKNOWN.to_string()),
+        kernel: sys.kernel_version().unwrap_or(UNKNOWN.to_string()),
         cpu_model: sys.global_cpu_info().brand().to_owned(),
         cpu_frequency: sys.cpus().iter().map(|c| c.frequency() as usize).collect(),
-        memory: sys.total_memory() as usize,
-        swap: sys.total_swap() as usize,
+        memory_size: sys.total_memory() as usize,
+        swap_size: sys.total_swap() as usize,
         processes: sys.processes().len(),
         env: std::env::vars().collect(),
         pid: std::process::id() as usize,

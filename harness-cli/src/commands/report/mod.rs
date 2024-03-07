@@ -98,7 +98,10 @@ impl ReportArgs {
         }
         printer.add(format!("* OS: `{}`\n", config.platform.os));
         printer.add(format!("* CPU: `{}`\n", config.platform.cpu_model));
-        printer.add(format!("* Memory: `{} GB`\n", config.platform.memory >> 30));
+        printer.add(format!(
+            "* Memory: `{} GB`\n",
+            config.platform.memory_size >> 30
+        ));
         printer.add("\n## Mean Over All Invocations\n\n");
         printer.add_dataframe(&bm_df);
         printer.add("\n## Summary\n\n");

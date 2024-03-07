@@ -160,8 +160,8 @@ impl RunArgs {
                 .on_magenta()
                 .bold()
         );
-        if RunInfo::get_git_hash() != run_info.default_build_commit {
-            let mut commit = run_info.default_build_commit.clone();
+        if RunInfo::get_git_hash() != run_info.commit {
+            let mut commit = run_info.commit.clone();
             if commit.ends_with("-dirty") {
                 commit = commit.trim_end_matches("-dirty").to_owned();
             }
