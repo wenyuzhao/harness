@@ -67,7 +67,9 @@ impl MarkdownPrinter {
             AnyValue::UInt16(v) => TableCell::Int(*v as i64),
             AnyValue::UInt32(v) => TableCell::Int(*v as i64),
             AnyValue::UInt64(v) => TableCell::Int(*v as i64),
-            v if v.get_str().is_some() => TableCell::Label(v.get_str().unwrap().to_string()),
+            v if v.get_str().is_some() => {
+                TableCell::Label(v.get_str().unwrap().to_string(), Align::Left)
+            }
             _ => unimplemented!("{:?}", v),
         }
     }
@@ -117,16 +119,16 @@ impl MarkdownPrinter {
 
     fn metric_summary_to_markdown(&self, s: &PerMetricSummary) -> String {
         let mut table = MarkdownTable::default();
-        for col in s.unnormed.get_columns() {
+        for col in s.df.get_columns() {
             let name = col.name();
             table.headers.push(name.to_owned());
-            let normed_col = s.normed.as_ref().and_then(|df| df.column(name).ok());
             // Initialize rows
             if table.rows.is_empty() {
                 table.rows = (0..col.len()).map(|_| vec![]).collect::<Vec<_>>();
             }
             // Collect cells for this column
             if name == "min" || name == "max" {
+                table.headers.push(format!("{}-bench", name));
                 for i in 0..col.len() {
                     let v = self.get_f64(&col.get(i).unwrap());
                     let label = if name == "min" {
@@ -134,12 +136,8 @@ impl MarkdownPrinter {
                     } else {
                         s.max_names[i].clone()
                     };
-                    if let Some(normed_col) = normed_col {
-                        let n = self.get_f64(&normed_col.get(i).unwrap());
-                        table.rows[i].push(TableCell::FloatWithNormAndLabel(v, n, label));
-                    } else {
-                        table.rows[i].push(TableCell::FloatWithLabel(v, label));
-                    }
+                    table.rows[i].push(TableCell::Float(v));
+                    table.rows[i].push(TableCell::Label(label, Align::Right));
                 }
             } else if name == "build" || name == "benchmarks" {
                 for i in 0..col.len() {
@@ -149,12 +147,7 @@ impl MarkdownPrinter {
             } else {
                 for i in 0..col.len() {
                     let v = self.get_f64(&col.get(i).unwrap());
-                    if let Some(normed_col) = normed_col {
-                        let n = self.get_f64(&normed_col.get(i).unwrap());
-                        table.rows[i].push(TableCell::FloatWithNorm(v, n));
-                    } else {
-                        table.rows[i].push(TableCell::Float(v));
-                    }
+                    table.rows[i].push(TableCell::Float(v));
                 }
             }
         }
@@ -183,47 +176,47 @@ enum Align {
 
 #[derive(Clone, PartialEq)]
 enum TableCell {
-    Label(String),
+    Label(String, Align),
     Float(f64),
     Int(i64),
     FloatWithCI(f64, f64),
-    FloatWithNorm(f64, f64),
-    FloatWithLabel(f64, String),
-    FloatWithNormAndLabel(f64, f64, String),
 }
 
 fn pad(c: char, count: usize) -> String {
     (0..count).map(|_| c).collect::<String>()
 }
 
+fn pad_start(s: &str, width: usize, c: char) -> String {
+    format!("{}{}", pad(c, width - s.chars().count()), s)
+}
+
 fn pad_end(s: &str, width: usize, c: char) -> String {
-    format!("{}{}", s, pad(c, width - s.len()))
+    format!("{}{}", s, pad(c, width - s.chars().count()))
+}
+
+struct StrSegments {
+    segments: Vec<String>,
 }
 
 impl TableCell {
-    fn to_str(&self) -> String {
-        match self {
-            TableCell::Label(s) => s.clone(),
-            TableCell::Float(f) => format!("{:.3}", f),
-            TableCell::Int(i) => i.to_string(),
-            TableCell::FloatWithCI(f, ci) => format!("{:.3} ± {:.3}", f, ci),
-            TableCell::FloatWithNorm(f, norm) => format!("{:.3} ({:.3})", f, norm),
-            TableCell::FloatWithLabel(f, label) => format!("{:.3} ({})", f, label),
-            TableCell::FloatWithNormAndLabel(f, norm, label) => {
-                format!("{:.3} ({:.3}, {})", f, norm, label)
+    fn to_str_segments(&self) -> StrSegments {
+        let segments = match self {
+            TableCell::Label(s, _) => vec![s.clone()],
+            TableCell::Float(f) => vec![format!("{:.3}", f)],
+            TableCell::Int(i) => vec![i.to_string()],
+            TableCell::FloatWithCI(f, ci) => {
+                vec![format!("{:.3}", f), "±".to_string(), format!("{:.3}", ci)]
             }
-        }
+        };
+        StrSegments { segments }
     }
 
     fn get_align(&self) -> Align {
         match self {
-            TableCell::Label(_) => Align::Left,
+            TableCell::Label(_, a) => *a,
             TableCell::Float(_) => Align::Right,
             TableCell::Int(_) => Align::Right,
             TableCell::FloatWithCI(_, _) => Align::Right,
-            TableCell::FloatWithNorm(_, _) => Align::Right,
-            TableCell::FloatWithLabel(_, _) => Align::Right,
-            TableCell::FloatWithNormAndLabel(_, _, _) => Align::Right,
         }
     }
 }
@@ -242,7 +235,7 @@ impl MarkdownTable {
         for row in &self.rows {
             let mut r = vec![];
             for cell in row {
-                r.push(cell.to_str());
+                r.push(cell.to_str_segments());
             }
             rows.push(r);
         }
@@ -262,28 +255,46 @@ impl MarkdownTable {
 struct TextTable {
     headers: Vec<String>,
     aligns: Vec<Align>,
-    rows: Vec<Vec<String>>,
+    rows: Vec<Vec<StrSegments>>,
     tty: bool,
 }
 
 impl TextTable {
-    fn get_column_widths(&self) -> Vec<usize> {
+    fn get_column_widths(&self, seg_widths: &Vec<Vec<usize>>) -> Vec<usize> {
         let mut col_widths = vec![];
         for i in 0..self.headers.len() {
-            let max_width = self
-                .rows
-                .iter()
-                .map(|r| r[i].len())
-                .chain(std::iter::once(self.headers[i].len()))
-                .max()
-                .unwrap();
-            col_widths.push(max_width);
+            let header_width = self.headers[i].len();
+            let cell_widths = seg_widths[i].iter().sum::<usize>() + seg_widths[i].len() - 1;
+            col_widths.push(usize::max(header_width, cell_widths));
         }
         col_widths
     }
 
+    fn get_segment_widths_for_col(&self, col_index: usize) -> Vec<usize> {
+        let mut widths = vec![];
+        for r in &self.rows {
+            let segs = &r[col_index].segments;
+            for (i, seg) in segs.iter().enumerate() {
+                if i >= widths.len() {
+                    widths.push(0);
+                }
+                widths[i] = widths[i].max(seg.chars().count());
+            }
+        }
+        widths
+    }
+
+    fn get_segment_widths(&self) -> Vec<Vec<usize>> {
+        let mut widths = vec![];
+        for i in 0..self.headers.len() {
+            widths.push(self.get_segment_widths_for_col(i));
+        }
+        widths
+    }
+
     fn render(&self) -> String {
-        let col_widths = self.get_column_widths();
+        let seg_widths = self.get_segment_widths();
+        let col_widths = self.get_column_widths(&seg_widths);
         let mut rows = vec![];
         // First row
         if self.tty {
@@ -312,15 +323,24 @@ impl TextTable {
                 format!("{}{}{}", left_align, c, right_align)
             })
             .collect::<Vec<_>>()
-            .join(" | ");
-        let mid = format!("| {} |", mid);
+            .join("|");
+        let mid = format!("|{}|", mid);
         rows.push(mid);
         // Value rows
         for row in &self.rows {
             let mid = row
                 .iter()
-                .zip(col_widths.iter())
-                .map(|(cell, width)| pad_end(cell, *width, ' '))
+                .enumerate()
+                .map(|(ci, segs)| {
+                    let segs = segs
+                        .segments
+                        .iter()
+                        .enumerate()
+                        .map(|(si, seg)| pad_start(seg, seg_widths[ci][si], ' '))
+                        .collect::<Vec<_>>()
+                        .join(" ");
+                    pad_start(&segs, col_widths[ci], ' ')
+                })
                 .collect::<Vec<_>>()
                 .join(" | ");
             let mid = format!("| {} |", mid);
@@ -334,6 +354,8 @@ impl TextTable {
         }
         // Concat rows
         let table = rows.join("\n") + "\n";
+        println!("{:?}", col_widths);
+        println!("{:?}", seg_widths);
         table
     }
 }

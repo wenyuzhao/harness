@@ -27,8 +27,8 @@ pub fn mean_over_invocations(df: &DataFrame) -> anyhow::Result<(DataFrame, DataF
 #[derive(Default)]
 pub(crate) struct PerMetricSummary {
     pub name: String,
-    pub unnormed: DataFrame,
-    pub normed: Option<DataFrame>,
+    pub normed: bool,
+    pub df: DataFrame,
     pub min_names: Vec<String>,
     pub max_names: Vec<String>,
 }
@@ -68,8 +68,8 @@ pub fn per_metric_summary(
                 .collect()?;
             let mut summary = PerMetricSummary {
                 name: c.name().to_owned(),
-                unnormed: df_metric_unnormed.clone(),
-                normed: None,
+                df: df_metric_unnormed.clone(),
+                normed: false,
                 min_names: vec![],
                 max_names: vec![],
             };
@@ -112,7 +112,8 @@ pub fn per_metric_summary(
                     .lazy()
                     .with_column(vals() / (vals().slice(norm_index as i32, 1).first()))
                     .collect()?;
-                summary.normed = Some(df_metric_normed);
+                summary.df = df_metric_normed;
+                summary.normed = true;
             }
             metrics.push(summary);
         }
