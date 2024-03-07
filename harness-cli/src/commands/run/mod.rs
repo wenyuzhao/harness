@@ -10,6 +10,8 @@ use crate::{
     meta::{CrateInfo, RunInfo},
 };
 
+use super::report::ReportArgs;
+
 mod checks;
 mod runner;
 
@@ -37,6 +39,9 @@ pub struct RunArgs {
     /// Specify a path to the config file, or the run id to reproduce a previous run.
     #[arg(long)]
     pub config: Option<String>,
+    /// Report the benchmark results after running
+    #[arg(long, default_value = "false")]
+    pub report: bool,
 }
 
 impl RunArgs {
@@ -132,9 +137,8 @@ impl RunArgs {
         Ok(())
     }
 
-    fn reproduce_run(&self) -> anyhow::Result<()> {
+    fn prepare_reproduced_run(&self, crate_info: &CrateInfo) -> anyhow::Result<RunInfo> {
         // Load config and previous machine info
-        let crate_info = self.load_crate_info()?;
         let config_path_or_runid = self.config.as_ref().unwrap();
         let config_path = if config_path_or_runid.ends_with(".toml") {
             PathBuf::from(config_path_or_runid)
@@ -147,7 +151,6 @@ impl RunArgs {
                 .join("config.toml")
         };
         let run_info = RunInfo::load(&config_path)?;
-        let profile = run_info.profile.clone();
         println!(
             "{}",
             format!("Reproduce Run: {}\n", run_info.runid.clone().italic())
@@ -171,25 +174,35 @@ impl RunArgs {
                 );
             }
         }
-        // Run benchmarks
-        self.run_benchmarks(crate_info, profile, Some(&run_info))?;
-        Ok(())
+        Ok(run_info)
     }
 
     pub fn run(&self) -> anyhow::Result<()> {
-        // Pre-benchmarking checks
         let crate_info = self.load_crate_info()?;
-        // Reproduce a previous run?
-        if self.config.is_some() {
-            return self.reproduce_run();
-        }
-        // Load benchmark profile
-        let config = config::load_from_cargo_toml()?;
-        let Some(profile) = config.profiles.get(&self.profile).cloned() else {
-            anyhow::bail!("Could not find harness profile `{}`", self.profile);
+        let (profile, old_run) = if self.config.is_some() {
+            // Reproduce a previous run
+            let old_run = self.prepare_reproduced_run(&crate_info)?;
+            let profile = old_run.profile.clone();
+            (profile, Some(old_run))
+        } else {
+            // A new run
+            let config = config::load_from_cargo_toml()?;
+            let Some(profile) = config.profiles.get(&self.profile).cloned() else {
+                anyhow::bail!("Could not find harness profile `{}`", self.profile);
+            };
+            (profile, None)
         };
-        // Run benchmarks
-        self.run_benchmarks(crate_info, profile, None)?;
+        let baseline = profile.baseline.clone();
+        self.run_benchmarks(crate_info, profile, old_run.as_ref())?;
+        // Report
+        if self.report {
+            let report = ReportArgs {
+                run_id: None,
+                norm: baseline.is_some(),
+                baseline,
+            };
+            report.run()?;
+        }
         Ok(())
     }
 }
