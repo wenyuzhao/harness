@@ -28,6 +28,7 @@ TODO:
 - [ ] Documentation
 - [ ] Benchmark subsetting
 - [ ] Comments for public api
+- [ ] More examples
 - [ ] Post invocation: Copy files
 - [ ] Post invocation: Rsync results
 - [ ] Post invocation: Other customized hooks / plugins
