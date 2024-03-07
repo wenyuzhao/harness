@@ -1,31 +1,66 @@
+use colored::{Colorize, CustomColor};
+use libloading::Library;
+use once_cell::sync::Lazy;
+
+use crate::platform_info::RunInfo;
 #[cfg(target_os = "linux")]
 use crate::platform_info::PLATFORM_INFO;
-use colored::{Colorize, CustomColor};
-use once_cell::sync::Lazy;
 
 static BG: Lazy<CustomColor> = Lazy::new(|| CustomColor::new(0x23, 0x23, 0x23));
 
-struct PreBenchmarkingChecker {
+struct PreBenchmarkingChecker<'a> {
     warnings: Vec<String>,
     allow_dirty: bool,
     #[allow(unused)]
     allow_multi_user: bool,
     #[allow(unused)]
     allow_any_scaling_governor: bool,
+    run: &'a RunInfo,
 }
 
-impl PreBenchmarkingChecker {
-    fn new(allow_dirty: bool, allow_multi_user: bool, allow_any_scaling_governor: bool) -> Self {
+impl<'a> PreBenchmarkingChecker<'a> {
+    fn new(
+        run: &'a RunInfo,
+        allow_dirty: bool,
+        allow_multi_user: bool,
+        allow_any_scaling_governor: bool,
+    ) -> Self {
         Self {
             warnings: Vec::new(),
             allow_dirty,
             allow_multi_user,
             allow_any_scaling_governor,
+            run,
         }
     }
 
     fn warn(&mut self, msg: impl AsRef<str>) {
         self.warnings.push(msg.as_ref().to_owned());
+    }
+
+    fn check_build(&mut self) -> anyhow::Result<()> {
+        let status = std::process::Command::new("cargo")
+            .arg("bench")
+            .arg("--no-run")
+            .output()?
+            .status;
+        if !status.success() {
+            anyhow::bail!("Failed to build the benchmarks.");
+        }
+        Ok(())
+    }
+
+    #[cfg(target_os = "linux")]
+    fn check_perf_event(&mut self) -> anyhow::Result<()> {
+        let perf_event_paranoid = std::fs::read_to_string("/proc/sys/kernel/perf_event_paranoid")?;
+        let perf_event_paranoid = perf_event_paranoid.trim().parse::<i32>()?;
+        if perf_event_paranoid != -1 {
+            self.warn(format!(
+                "/proc/sys/kernel/perf_event_paranoid is {}. This may cause permission issues when reading performance counters.",
+                perf_event_paranoid
+            ));
+        }
+        Ok(())
     }
 
     fn check_dirty_git_worktree(&mut self) -> anyhow::Result<()> {
@@ -42,10 +77,16 @@ impl PreBenchmarkingChecker {
         Ok(())
     }
 
+    fn check_common(&mut self) -> anyhow::Result<()> {
+        self.check_build()?;
+        self.check_dirty_git_worktree()?;
+        Ok(())
+    }
+
     #[cfg(target_os = "linux")]
     fn check(&mut self) -> anyhow::Result<()> {
-        // Check if the current git worktree is dirty
-        self.check_dirty_git_worktree()?;
+        self.check_common()?;
+        self.check_perf_event()?;
         // Check if the current user is the only one logged in
         if PLATFORM_INFO.users.len() > 1 {
             let msg = format!(
@@ -96,8 +137,7 @@ impl PreBenchmarkingChecker {
 
     #[cfg(not(target_os = "linux"))]
     fn check(&mut self) -> anyhow::Result<()> {
-        // Check if the current git worktree is dirty
-        self.dirty_git_worktree_check()?;
+        self.check_common()?;
         Ok(())
     }
 
@@ -111,8 +151,9 @@ impl PreBenchmarkingChecker {
 }
 
 impl super::RunArgs {
-    pub(super) fn pre_benchmarking_checks(&self) -> anyhow::Result<()> {
+    pub(super) fn pre_benchmarking_checks(&self, run: &RunInfo) -> anyhow::Result<()> {
         let mut checker = PreBenchmarkingChecker::new(
+            run,
             self.allow_dirty,
             self.allow_multi_user,
             self.allow_any_scaling_governor,
