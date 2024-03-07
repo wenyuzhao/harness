@@ -10,6 +10,10 @@ description = "Precise and reproducible micro benchmarking"
 name = "cargo-harness"
 path = "src/main.rs"
 
+[[bin]]
+name = "harness"
+path = "src/main.rs"
+
 [dependencies]
 git2 = { version = "0.18.1", default-features = false }
 anyhow = { version = "1.0.75", features = ["backtrace"] }
