@@ -17,3 +17,12 @@
    - `harness.profiles.default.builds`: Different builds to compare. You must have at least two builds to run the benchmark.
 8. Run benchmarks: `cargo harness run`.
 9. After the command above is finished, collect results and plot graphs: `cargo harness plot`.
+
+TODO:
+
+- [x] Runner
+- [x] Binary runner
+- [x] Result reporting
+- [x] Test runnner
+- [ ] Scratch folder
+- [ ] Documentation

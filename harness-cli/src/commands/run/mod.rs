@@ -39,6 +39,12 @@ pub struct RunArgs {
     /// Specify a path to the config file, or the run id to reproduce a previous run.
     #[arg(long)]
     pub config: Option<String>,
+    /// Do an one-shot test run on a single benchmark.
+    #[arg(long)]
+    pub bench: Option<String>,
+    /// The build used for the one-shot test run.
+    #[arg(long)]
+    pub build: Option<String>,
     /// Report the benchmark results after running
     #[arg(long, default_value = "false")]
     pub report: bool,
@@ -173,8 +179,37 @@ impl RunArgs {
         Ok(run_info)
     }
 
+    pub fn test_run(&self, crate_info: &CrateInfo) -> anyhow::Result<()> {
+        if self.invocations.is_some() {
+            anyhow::bail!("Cannot specify invocations for a single-shot test run");
+        }
+        if self.config.is_some() {
+            anyhow::bail!("Cannot specify config for a single-shot test run");
+        }
+        if !self.build.is_some() {
+            anyhow::bail!("Must specify the build used for the single-shot test run");
+        }
+        let bench = self.bench.as_ref().unwrap();
+        let build = self.build.as_ref().unwrap();
+        let config = config::load_from_cargo_toml()?;
+        let Some(mut profile) = config.profiles.get(&self.profile).cloned() else {
+            anyhow::bail!("Could not find harness profile `{}`", self.profile);
+        };
+        if let Some(iterations) = self.iterations {
+            profile.iterations = iterations;
+        }
+        let (runid, start_time) = self.generate_runid();
+        let run_info = RunInfo::new(crate_info.clone(), profile, runid.clone(), start_time);
+        let runner = runner::BenchRunner::new(&run_info);
+        runner.test_run(bench, build)?;
+        Ok(())
+    }
+
     pub fn run(&self) -> anyhow::Result<()> {
         let crate_info = self.load_crate_info()?;
+        if self.bench.is_some() {
+            return self.test_run(&crate_info);
+        }
         let (profile, old_run) = if self.config.is_some() {
             // Reproduce a previous run
             let old_run = self.prepare_reproduced_run(&crate_info)?;

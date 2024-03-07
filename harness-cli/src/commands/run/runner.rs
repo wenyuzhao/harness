@@ -78,6 +78,47 @@ impl<'a> BenchRunner<'a> {
     }
 
     /// Run one benchmark with one build, for N iterations.
+    pub fn test_run(&self, bench: &str, build_name: &str) -> anyhow::Result<()> {
+        let build = self.run.profile.builds.get(build_name).unwrap();
+        let mut cmd = Command::new("cargo");
+        cmd.args(["bench", "--bench", bench])
+            .arg("--features")
+            .arg(build.features.join(" "))
+            .args(if !build.default_features {
+                &["--no-default-features"] as &[&str]
+            } else {
+                &[] as &[&str]
+            })
+            .args(["--", "-n"])
+            .arg(format!("{}", self.run.profile.iterations))
+            .arg("--overwrite-crate-name")
+            .arg(&self.run.crate_info.name)
+            .arg("--overwrite-benchmark-name")
+            .arg(bench)
+            .arg("--current-invocation")
+            .arg("0")
+            .arg("--current-build")
+            .arg(build_name);
+        if !self.run.profile.probes.is_empty() {
+            cmd.args(["--probes".to_owned(), self.run.profile.probes.join(",")]);
+        }
+        let mut envs = self.run.profile.env.clone();
+        for (k, v) in &build.env {
+            envs.insert(k.clone(), v.clone());
+        }
+        cmd.envs(&envs);
+        if cmd.status()?.success() {
+            Ok(())
+        } else {
+            Err(anyhow::anyhow!(
+                "Test run failed. bench={}, build={}",
+                bench,
+                build_name
+            ))
+        }
+    }
+
+    /// Run one benchmark with one build, for N iterations.
     fn run_one(
         &self,
         profile: &config::Profile,
