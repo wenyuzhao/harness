@@ -41,10 +41,23 @@ pub struct BenchArgs {
     pub current_build: Option<String>,
 }
 
-pub struct Bencher {
-    elapsed: Mutex<Option<Duration>>,
-    probes: RefCell<ProbeManager>,
-}
+pub trait Value: ToString + 'static {}
+
+impl Value for f64 {}
+impl Value for f32 {}
+impl Value for usize {}
+impl Value for isize {}
+impl Value for u128 {}
+impl Value for i128 {}
+impl Value for u64 {}
+impl Value for i64 {}
+impl Value for u32 {}
+impl Value for i32 {}
+impl Value for u16 {}
+impl Value for i16 {}
+impl Value for u8 {}
+impl Value for i8 {}
+impl Value for bool {}
 
 pub struct BenchTimer<'a> {
     start_time: std::time::Instant,
@@ -61,11 +74,18 @@ impl<'a> Drop for BenchTimer<'a> {
     }
 }
 
+pub struct Bencher {
+    elapsed: Mutex<Option<Duration>>,
+    probes: RefCell<ProbeManager>,
+    extra_stats: Mutex<Vec<(String, Box<dyn Value>)>>,
+}
+
 impl Bencher {
     fn new() -> Self {
         Self {
             elapsed: Mutex::new(None),
             probes: RefCell::new(ProbeManager::new()),
+            extra_stats: Mutex::new(Vec::new()),
         }
     }
 
@@ -91,27 +111,51 @@ impl Bencher {
         let _timer = self.start_timing();
         f();
     }
+
+    pub fn add_stat(&self, name: impl AsRef<str>, value: impl Value) {
+        self.extra_stats
+            .lock()
+            .unwrap()
+            .push((name.as_ref().to_owned(), Box::new(value)));
+    }
 }
 
 pub struct SingleBenchmarkRunner {
+    args: BenchArgs,
     name: String,
+    crate_name: String,
     bencher: Bencher,
     benchmark: fn(&Bencher),
+    is_single_shot: bool,
 }
 
 impl SingleBenchmarkRunner {
     #[doc(hidden)]
-    pub fn new(fname: &str, benchmark: fn(&Bencher)) -> Self {
+    pub fn new(fname: &str, benchmark: fn(&Bencher), is_single_shot: bool) -> Self {
+        let args = BenchArgs::parse();
         let fname = std::path::PathBuf::from(fname);
         let name = fname.file_stem().unwrap().to_str().unwrap().to_owned();
+        let name = if let Some(n) = args.overwrite_benchmark_name.as_ref() {
+            n.clone()
+        } else {
+            name
+        };
+        let crate_name = if let Some(n) = args.overwrite_crate_name.as_ref() {
+            n.clone()
+        } else {
+            "cargo-harness".to_owned()
+        };
         Self {
+            args: BenchArgs::parse(),
             name,
+            crate_name,
             bencher: Bencher::new(),
             benchmark,
+            is_single_shot,
         }
     }
 
-    fn run_once(&mut self) -> f32 {
+    fn run_once_impl(&mut self) -> f32 {
         (self.benchmark)(&self.bencher);
         // Return execution time
         let elapsed = self.bencher.elapsed.lock().unwrap().take();
@@ -120,22 +164,9 @@ impl SingleBenchmarkRunner {
         elapsed.as_micros() as f32 / 1000.0
     }
 
-    #[doc(hidden)]
-    pub fn run(&mut self) -> anyhow::Result<()> {
-        let args = BenchArgs::parse();
-        self.bencher.probes.borrow_mut().init(&args.probes);
-        let name = if let Some(n) = args.overwrite_benchmark_name.as_ref() {
-            n.clone()
-        } else {
-            self.name.clone()
-        };
-        let crate_name = if let Some(n) = args.overwrite_crate_name.as_ref() {
-            n.clone()
-        } else {
-            "cargo-harness".to_owned()
-        };
-        for i in 0..args.iterations {
-            let is_timing_iteration = i == args.iterations - 1;
+    fn run_iterative(&mut self, iterations: usize) {
+        for i in 0..iterations {
+            let is_timing_iteration = i == iterations - 1;
             let (start_label, end_label) = if !is_timing_iteration {
                 (
                     format!("warmup {} ", i + 1),
@@ -146,19 +177,32 @@ impl SingleBenchmarkRunner {
             };
             eprintln!(
                 "===== {} {} starting {}=====",
-                crate_name, name, start_label
+                self.crate_name, self.name, start_label
             );
-            let elapsed = self.run_once();
+            let elapsed = self.run_once_impl();
             eprintln!(
                 "===== {} {} {} in {:.1} msec =====",
-                crate_name, name, end_label, elapsed
+                self.crate_name, self.name, end_label, elapsed
             );
         }
+    }
+
+    #[doc(hidden)]
+    pub fn run(&mut self) -> anyhow::Result<()> {
+        self.bencher.probes.borrow_mut().init(&self.args.probes);
+        let iterations = if self.is_single_shot {
+            eprintln!("WARNING: Force single-shot run.");
+            1
+        } else {
+            self.args.iterations
+        };
+        self.run_iterative(iterations);
         self.bencher.probes.borrow().dump_counters(
-            &name,
-            args.output_csv.as_ref(),
-            args.current_invocation,
-            args.current_build.as_ref(),
+            &self.name,
+            self.args.output_csv.as_ref(),
+            self.args.current_invocation,
+            self.args.current_build.as_ref(),
+            &self.bencher.extra_stats.lock().unwrap(),
         );
         Ok(())
     }

@@ -3,6 +3,8 @@ use std::{collections::HashMap, fs::OpenOptions, path::PathBuf, time::Instant};
 
 use libloading::{Library, Symbol};
 
+use crate::bencher::Value;
+
 #[derive(Default)]
 struct Counters {
     counters: Vec<(String, f32)>,
@@ -129,6 +131,7 @@ impl ProbeManager {
         csv: Option<&PathBuf>,
         invocation: Option<usize>,
         build: Option<&String>,
+        extra_stats: &[(String, Box<dyn Value>)],
     ) {
         eprintln!(
             "============================ Harness Statistics Totals ============================"
@@ -136,9 +139,15 @@ impl ProbeManager {
         for (name, _value) in &self.counters.counters {
             eprint!("{}\t", name);
         }
+        for (name, _) in extra_stats {
+            eprint!("{}\t", name);
+        }
         eprintln!();
         for (_name, value) in &self.counters.counters {
             eprint!("{}\t", value);
+        }
+        for (_, value) in extra_stats {
+            eprint!("{}\t", value.to_string());
         }
         eprintln!();
         eprintln!(
