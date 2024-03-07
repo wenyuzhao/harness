@@ -3,10 +3,11 @@ use std::path::PathBuf;
 use cargo_metadata::MetadataCommand;
 use chrono::{DateTime, Local};
 use clap::Parser;
+use termimad::crossterm::style::Stylize;
 
 use crate::{
     config::{self, Profile},
-    platform_info::{CrateInfo, RunInfo, PLATFORM_INFO},
+    platform_info::{CrateInfo, RunInfo},
 };
 
 mod checks;
@@ -109,7 +110,12 @@ impl RunArgs {
         Ok(())
     }
 
-    fn run_benchmarks(&self, crate_info: &CrateInfo, mut profile: Profile) -> anyhow::Result<()> {
+    fn run_benchmarks(
+        &self,
+        crate_info: &CrateInfo,
+        mut profile: Profile,
+        old_run: Option<&RunInfo>,
+    ) -> anyhow::Result<()> {
         // Overwrite invocations and iterations
         if let Some(invocations) = self.invocations {
             profile.invocations = invocations;
@@ -121,6 +127,9 @@ impl RunArgs {
         let (run_id, start_time) = self.generate_runid();
         let log_dir = self.prepare_logs_dir(&crate_info, &run_id)?;
         let run_info = self.dump_metadata(&run_id, crate_info, &profile, &log_dir, start_time)?;
+        if let Some(old) = old_run {
+            self.reproducibility_checks(old, &run_info)?;
+        }
         self.pre_benchmarking_checks(&run_info)?;
         // Run benchmarks
         let mut runner = runner::BenchRunner::new(crate_info.name.clone(), &run_info);
@@ -145,93 +154,14 @@ impl RunArgs {
         };
         let run_info = RunInfo::load(&config_path)?;
         let profile = run_info.profile.clone();
-        let platform = run_info.platform.clone();
-        println!("Reproducing run: {}", run_info.runid);
-        // Check current environment, and warn if it's different from the previous run
-        if PLATFORM_INFO.os != platform.os {
-            println!(
-                "WARNING: OS changed: {} -> {}",
-                platform.os, PLATFORM_INFO.os
-            );
-        }
-        if PLATFORM_INFO.arch != platform.arch {
-            println!(
-                "WARNING: Architecture changed: {} -> {}",
-                platform.arch, PLATFORM_INFO.arch
-            );
-        }
-        if PLATFORM_INFO.kernel_version != platform.kernel_version {
-            println!(
-                "WARNING: Kernel changed: {} -> {}",
-                platform.kernel_version, PLATFORM_INFO.kernel_version
-            );
-        }
-        if PLATFORM_INFO.cpu_model != platform.cpu_model {
-            println!(
-                "WARNING: CPU changed: {} -> {}",
-                platform.cpu_model, PLATFORM_INFO.cpu_model
-            );
-        }
-        if PLATFORM_INFO.memory != platform.memory {
-            println!(
-                "WARNING: Memory changed: {} -> {}",
-                platform.memory, PLATFORM_INFO.memory
-            );
-        }
-        if PLATFORM_INFO.swap != platform.swap {
-            println!(
-                "WARNING: Swap changed: {} -> {}",
-                platform.swap, PLATFORM_INFO.swap
-            );
-        }
-        if PLATFORM_INFO.rustc != platform.rustc {
-            println!(
-                "WARNING: Rustc version changed: {} -> {}",
-                platform.rustc, PLATFORM_INFO.rustc
-            );
-        }
-        if PLATFORM_INFO.rustc != platform.rustc {
-            println!(
-                "WARNING: Rustc version changed: {} -> {}",
-                platform.rustc, PLATFORM_INFO.rustc
-            );
-        }
-        if PLATFORM_INFO.env != platform.env {
-            println!("WARNING: Environment variable changed");
-            for (k, v) in &platform.env {
-                if PLATFORM_INFO.env.get(k) != Some(v) {
-                    println!("  - {}: {:?} -> {:?}", k, v, PLATFORM_INFO.env.get(k));
-                }
-            }
-            for (k, v) in &PLATFORM_INFO.env {
-                if !platform.env.contains_key(k) {
-                    println!("  - {}: {:?} -> {:?}", k, platform.env.get(k), v);
-                }
-            }
-        }
-        #[cfg(target_os = "linux")]
-        if PLATFORM_INFO.scaling_governor != platform.scaling_governor {
-            println!(
-                "WARNING: Scaling governor changed: {:?} -> {:?}",
-                platform.scaling_governor, PLATFORM_INFO.scaling_governor
-            );
-        }
-        if self.invocations.is_some() && self.invocations != Some(profile.invocations) {
-            println!(
-                "WARNING: Invocations changed: {} -> {}",
-                profile.invocations,
-                self.invocations.unwrap()
-            );
-        }
-        if self.iterations.is_some() && self.iterations != Some(profile.iterations) {
-            println!(
-                "WARNING: Iterations changed: {} -> {}",
-                profile.iterations,
-                self.iterations.unwrap()
-            );
-        }
+        println!(
+            "{}",
+            format!("Reproduce Run: {}\n", run_info.runid.clone().italic())
+                .on_magenta()
+                .bold()
+        );
         // Run benchmarks
-        self.run_benchmarks(&crate_info, profile)?;
+        self.run_benchmarks(&crate_info, profile, Some(&run_info))?;
         Ok(())
     }
 
@@ -248,7 +178,7 @@ impl RunArgs {
             anyhow::bail!("Could not find harness profile `{}`", self.profile);
         };
         // Run benchmarks
-        self.run_benchmarks(&crate_info, profile)?;
+        self.run_benchmarks(&crate_info, profile, None)?;
         Ok(())
     }
 }

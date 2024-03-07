@@ -26,6 +26,8 @@ pub struct RunInfo {
     pub finish_timestamp_utc: Option<i64>,
     #[serde(rename = "profile-commit")]
     pub profile_commit: String,
+    #[serde(rename = "default-build-commit")]
+    pub default_build_commit: String,
 }
 
 impl RunInfo {
@@ -47,12 +49,14 @@ impl RunInfo {
         runid: String,
         start_time: DateTime<Local>,
     ) -> Self {
+        let commit = Self::get_git_hash();
         Self {
             crate_info: crate_info.clone(),
             platform: PLATFORM_INFO.clone(),
             profile: profile.clone(),
             runid,
-            profile_commit: Self::get_git_hash(),
+            profile_commit: commit.clone(),
+            default_build_commit: commit,
             start_timestamp_utc: start_time.to_utc().timestamp(),
             finish_timestamp_utc: None,
         }
