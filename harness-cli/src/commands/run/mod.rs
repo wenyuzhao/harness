@@ -6,7 +6,7 @@ use clap::Parser;
 use termimad::crossterm::style::Stylize;
 
 use crate::{
-    config::{self, Profile},
+    config::{self, BuildConfig, Profile},
     meta::{CrateInfo, RunInfo},
 };
 
@@ -43,6 +43,7 @@ pub struct RunArgs {
     #[arg(long)]
     pub bench: Option<String>,
     /// The build used for the one-shot test run.
+    /// If not specified, a temporary default build config will be created and used.
     #[arg(long)]
     pub build: Option<String>,
     /// Report the benchmark results after running
@@ -186,11 +187,8 @@ impl RunArgs {
         if self.config.is_some() {
             anyhow::bail!("Cannot specify config for a single-shot test run");
         }
-        if !self.build.is_some() {
-            anyhow::bail!("Must specify the build used for the single-shot test run");
-        }
         let bench = self.bench.as_ref().unwrap();
-        let build = self.build.as_ref().unwrap();
+        // let build = self.build.as_ref().unwrap();
         let config = config::load_from_cargo_toml()?;
         let Some(mut profile) = config.profiles.get(&self.profile).cloned() else {
             anyhow::bail!("Could not find harness profile `{}`", self.profile);
@@ -198,10 +196,19 @@ impl RunArgs {
         if let Some(iterations) = self.iterations {
             profile.iterations = iterations;
         }
+        let build = if self.build.is_none() {
+            let test_build_name = "@test";
+            profile
+                .builds
+                .insert(test_build_name.to_owned(), BuildConfig::default());
+            test_build_name
+        } else {
+            self.build.as_ref().unwrap()
+        };
         let (runid, start_time) = self.generate_runid();
         let run_info = RunInfo::new(crate_info.clone(), profile, runid.clone(), start_time);
         let runner = runner::BenchRunner::new(&run_info);
-        runner.test_run(bench, build)?;
+        runner.test_run(bench, &build)?;
         Ok(())
     }
 

@@ -37,10 +37,9 @@ impl<'a> BenchRunner<'a> {
             "HARNESS_BENCH_SCRATCH_DIR",
             self.scratch_dir.to_str().unwrap(),
         );
-        std::env::set_var(
-            "HARNESS_BENCH_LOG_DIR",
-            self.logdir.as_ref().unwrap().to_str().unwrap(),
-        );
+        if let Some(logdir) = &self.logdir {
+            std::env::set_var("HARNESS_BENCH_LOG_DIR", logdir.to_str().unwrap());
+        }
         std::env::set_var("HARNESS_BENCH_RUNID", self.run.runid.as_str());
         std::fs::create_dir_all(&self.scratch_dir)?;
         Ok(())

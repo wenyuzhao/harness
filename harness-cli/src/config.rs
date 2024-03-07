@@ -65,6 +65,18 @@ pub struct BuildConfig {
     pub commit: Option<String>,
 }
 
+impl Default for BuildConfig {
+    fn default() -> Self {
+        Self {
+            features: Vec::new(),
+            default_features: true,
+            env: HashMap::new(),
+            commit: None,
+        }
+    }
+
+}
+
 pub fn load_from_cargo_toml() -> anyhow::Result<Config> {
     if !PathBuf::from("./Cargo.toml").is_file() {
         anyhow::bail!("Failed to load ./Cargo.toml");
