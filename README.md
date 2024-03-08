@@ -1,6 +1,6 @@
 # cargo-harness
 
-**_Precise_** and **_reproducible_** micro benchmarking.
+**_Precise_** and **_reproducible_** benchmarking.
 
 * [Getting Started](#getting-started)
 * Precise Measurement
