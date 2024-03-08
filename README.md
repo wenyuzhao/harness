@@ -19,7 +19,7 @@
 3. Start benchmarking: `cargo harness run`.
 4. View results: `cargo harness report`.
 
-TODO:
+# TODO:
 
 - [x] Runner
 - [x] Binary runner
