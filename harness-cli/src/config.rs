@@ -114,8 +114,7 @@ pub fn load_from_cargo_toml() -> anyhow::Result<HarnessConfig> {
     let mut harness = toml::from_str::<CargoConfig>(&s)?
         .package
         .metadata
-        .map(|m| m.harness)
-        .flatten()
+        .and_then(|m| m.harness)
         .unwrap_or_default();
     if harness.profiles.is_empty() {
         harness
