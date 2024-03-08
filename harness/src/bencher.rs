@@ -116,7 +116,7 @@ impl Bencher {
         }
     }
 
-    pub fn time(&self, mut f: impl FnMut()) {
+    pub fn time(&self, f: impl FnOnce()) {
         let _timer = self.start_timing();
         f();
     }
@@ -165,6 +165,7 @@ impl SingleBenchmarkRunner {
     }
 
     fn run_once_impl(&mut self) -> f32 {
+        self.bencher.extra_stats.lock().unwrap().clear();
         (self.benchmark)(&self.bencher);
         // Return execution time
         let elapsed = self.bencher.elapsed.lock().unwrap().take();
