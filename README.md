@@ -3,11 +3,11 @@
 **_Precise_** and **_reproducible_** benchmarking.
 
 * [Getting Started](#getting-started)
-* Precise Measurement
+* **Precise** Measurement
   * Interleaved runs
   * Warmup / timing phase separation
   * Statistical runs and analysis
-* Reproducible Evaluation
+* **Reproducible** Evaluation
   * Git-tracked configs
   * Tracked machine environments
   * Automatic reprodicibility checks
