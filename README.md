@@ -40,13 +40,9 @@ During benchmarking, the machine environment can have fluctuations, e.g. CPU fre
 
 ## Warmup / timing phase separation
 
-Instead of blindly iterating a single benchmark multiple times and report the per-iteration time distribution, `cargo-haress` have a clear notion of _warmup_ and _timing_ iterations. By default, each _invocation_ of $(P,B)$ will repeat the workload for $5$ iterations. The first $4$ iterations are used for warmup. Only the results from the last _timing_ iteration are reported.
-
-Unless explicitly set iterations to $1$, warmup / timing separation can greatly reduce the noise due to the relatively unpredictable warmups.
-
 Instead of blindly iterating a single benchmark multiple times and reporting the per-iteration time distribution, `cargo-harness` has a clear notion of _warmup_ and _timing_ iterations. By default, each invocation of $(P,B)$ will repeat the workload for $5$ iterations. The first $4$ iterations are used for warmup. Only the results from the last _timing_ iteration are reported.
 
-_Warmup_ / _timing_ separation can greatly reduce the noise due to the relatively unpredictable warmup phase. However, you can also choose to do single-iteration runs to cover the boot time and warmup cost.
+_Warmup_ / _timing_ separation can greatly reduce the noise due to the relatively unpredictable warmup oor boot phase. However, you can also choose to do single-iteration runs to cover the boot time and warmup cost.
 
 ## Statistical runs and analysis
 
