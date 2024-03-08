@@ -20,7 +20,7 @@ pub struct BenchRunner<'a> {
     build_names: Vec<String>,
     /// Benchmark profile
     run: &'a RunInfo,
-    logdir: Option<PathBuf>,
+    log_dir: Option<PathBuf>,
     scratch_dir: PathBuf,
 }
 
@@ -35,9 +35,16 @@ impl<'a> BenchRunner<'a> {
             benches: Vec::new(),
             build_names,
             run,
-            logdir: None,
+            log_dir: None,
             scratch_dir: run.crate_info.target_dir.join("harness").join("scratch"),
         }
+    }
+
+    fn get_log_file(&self, bench: &str, build: &str) -> PathBuf {
+        self.log_dir
+            .as_ref()
+            .unwrap()
+            .join(format!("{}.{}.log", bench, build))
     }
 
     fn setup_env_before_benchmarking(&self) -> anyhow::Result<()> {
@@ -45,7 +52,7 @@ impl<'a> BenchRunner<'a> {
             "HARNESS_BENCH_SCRATCH_DIR",
             self.scratch_dir.to_str().unwrap(),
         );
-        if let Some(logdir) = &self.logdir {
+        if let Some(logdir) = &self.log_dir {
             std::env::set_var("HARNESS_BENCH_LOG_DIR", logdir.to_str().unwrap());
         }
         std::env::set_var("HARNESS_BENCH_RUNID", self.run.runid.as_str());
@@ -168,7 +175,7 @@ impl<'a> BenchRunner<'a> {
     ) -> anyhow::Result<()> {
         std::fs::create_dir_all(log_dir)?;
         self.setup_before_invocation()?;
-        let log_file = log_dir.join(format!("{}.{}.log", bench, build_name));
+        let log_file = self.get_log_file(bench, build_name);
         // Checkout the given commit if it's specified
         if let Some(commit) = &build.commit {
             utils::git::checkout(commit)?;
@@ -228,7 +235,7 @@ impl<'a> BenchRunner<'a> {
         print_md!("# {}\n\n", self.run.runid);
         print_md!(
             "* logs: `{}`",
-            self.logdir.as_ref().unwrap().to_str().unwrap()
+            self.log_dir.as_ref().unwrap().to_str().unwrap()
         );
         print_md!("* probes: `{}`", self.run.profile.probes.join(", "));
         print_md!("* iterations: `{}`", self.run.profile.iterations);
@@ -277,7 +284,7 @@ impl<'a> BenchRunner<'a> {
 
     fn print_after_run(&self) {
         println!("\n{}\n", "✔ Benchmarking Finished.".green());
-        let csv_path = self.logdir.as_ref().unwrap().join("results.csv");
+        let csv_path = self.log_dir.as_ref().unwrap().join("results.csv");
         print_md!("Raw benchmark results at:\n");
         print_md!("* `{}`\n\n", csv_path.display());
         print_md!("Please run `cargo harness report` to view results.\n");
@@ -355,10 +362,7 @@ impl<'a> BenchRunner<'a> {
                     let build = &self.run.profile.builds[build_name];
                     match self.run_one(&self.run.profile, build_name, build, bench, log_dir, i) {
                         Ok(_) => self.print_build_label(build_index),
-                        Err(_) => {
-                            print!("{}", "✘".red());
-                            io::stdout().flush()?;
-                        }
+                        Err(e) => self.report_error_and_print_cross(bench, build_name, e)?,
                     }
                 }
             }
@@ -378,10 +382,7 @@ impl<'a> BenchRunner<'a> {
                     let build = &self.run.profile.builds[build_name];
                     match self.run_one(&self.run.profile, build_name, build, bench, log_dir, i) {
                         Ok(_) => self.print_build_label(build_index),
-                        Err(_) => {
-                            print!("{}", "✘".red());
-                            io::stdout().flush()?;
-                        }
+                        Err(e) => self.report_error_and_print_cross(bench, build_name, e)?,
                     }
                 }
             }
@@ -400,10 +401,7 @@ impl<'a> BenchRunner<'a> {
                     let build = &self.run.profile.builds[build_name];
                     match self.run_one(&self.run.profile, build_name, build, bench, log_dir, i) {
                         Ok(_) => self.print_invoc_label(i, false),
-                        Err(_) => {
-                            print!("{}", "✘".red());
-                            io::stdout().flush()?;
-                        }
+                        Err(e) => self.report_error_and_print_cross(bench, build_name, e)?,
                     }
                 }
             }
@@ -413,10 +411,30 @@ impl<'a> BenchRunner<'a> {
         Ok(())
     }
 
+    fn report_error_and_print_cross(
+        &self,
+        bench: &str,
+        build: &str,
+        e: anyhow::Error,
+    ) -> anyhow::Result<()> {
+        // Report error
+        let log_file = self.get_log_file(bench, build);
+        let mut outputs = OpenOptions::new()
+            .append(true)
+            .create(true)
+            .open(log_file)?;
+        writeln!(outputs, "\n\n\n")?;
+        writeln!(outputs, "❌ ERROR: {}", e)?;
+        // Print cross
+        print!("{}", "✘".red());
+        io::stdout().flush()?;
+        Ok(())
+    }
+
     /// Run all benchmarks with all builds.
     /// Benchmarks are invoked one by one.
     pub fn run(&mut self, log_dir: &Path) -> anyhow::Result<()> {
-        self.logdir = Some(log_dir.to_owned());
+        self.log_dir = Some(log_dir.to_owned());
         self.collect_benches()?;
         self.print_before_run();
         self.setup_env_before_benchmarking()?;

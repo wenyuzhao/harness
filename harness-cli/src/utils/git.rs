@@ -50,7 +50,10 @@ pub fn restore_git_state(prev: &GitInfo) -> anyhow::Result<()> {
     Ok(())
 }
 
-pub fn checkout(commit: &str) -> anyhow::Result<()> {
+pub fn checkout(mut commit: &str) -> anyhow::Result<()> {
+    if commit.ends_with("-dirty") {
+        commit = commit.trim_end_matches("-dirty");
+    }
     let output = Command::new("git").args(["checkout", commit]).output()?;
     if !output.status.success() {
         anyhow::bail!(
