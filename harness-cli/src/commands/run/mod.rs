@@ -16,23 +16,23 @@ use super::report::ReportArgs;
 mod checks;
 mod runner;
 
-/// Run all the benchmarks
+/// Start a benchmarking run
 #[derive(Parser)]
 pub struct RunArgs {
-    #[arg(short = 'n', long)]
     /// Number of iterations
+    #[arg(short = 'n', long)]
     pub iterations: Option<usize>,
-    #[arg(short = 'i', long)]
     /// Number of invocations
+    #[arg(short = 'i', long)]
     pub invocations: Option<usize>,
-    #[arg(long, default_value = "default")]
     /// Benchmarking profile
+    #[arg(long, default_value = "default")]
     pub profile: String,
-    #[arg(long, default_value = "false")]
     /// Allow dirty working directories
-    pub allow_dirty: bool,
     #[arg(long, default_value = "false")]
+    pub allow_dirty: bool,
     /// (Linux only) Allow benchmarking even when multiple users are logged in
+    #[arg(long, default_value = "false")]
     pub allow_multi_user: bool,
     /// (Linux only) Allow any scaling governor value, instead of only `performance`
     #[arg(long, default_value = "false")]

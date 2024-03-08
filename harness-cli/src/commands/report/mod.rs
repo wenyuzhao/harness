@@ -8,11 +8,12 @@ use crate::meta::RunInfo;
 
 pub(crate) mod data;
 
-/// Analyze and report benchmark results summary
+/// Analyze and report benchmark results
 #[derive(Parser)]
 pub struct ReportArgs {
     /// The run id to report. Default to the latest run.
     pub run_id: Option<String>,
+    /// Normalize the results to a baseline build.
     #[clap(long, default_value = "false")]
     pub norm: bool,
     /// The baseline build name to normalize to.

@@ -8,7 +8,7 @@ mod commands;
 mod config;
 mod meta;
 
-/// Benchmark harness CLI
+/// The Benchmarking Harness CLI
 #[derive(Parser)]
 struct Cli {
     #[command(subcommand)]
