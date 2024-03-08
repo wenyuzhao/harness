@@ -305,12 +305,29 @@ impl<'a> BenchRunner<'a> {
         io::stdout().flush().unwrap();
     }
 
-    fn print_bench_label(&self, b: usize, is_row_label: bool) {
+    fn get_bench_label(&self, index: usize, is_row_label: bool) -> String {
         if is_row_label {
-            print!("{} ", format!("{}", b).bold().blue().italic());
+            let max_w = self.benches.iter().map(|s| s.len()).max().unwrap();
+            let w = self.benches[index].len();
+            format!(
+                "{}{} ",
+                self.benches[index].bold().blue().italic(),
+                " ".repeat(max_w - w)
+            )
         } else {
-            print!("{}", format!("{}", b).bold().blue().italic());
+            let max_w = (self.benches.len() - 1).to_string().len();
+            let w = index.to_string().len();
+            format!("{}{}", "0".repeat(max_w - w), index)
+                .bold()
+                .blue()
+                .italic()
+                .to_string()
         }
+    }
+
+    fn print_bench_label(&self, b: usize, is_row_label: bool) {
+        let label = self.get_bench_label(b, is_row_label);
+        print!("{}", label);
         io::stdout().flush().unwrap();
     }
 
