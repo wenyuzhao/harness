@@ -162,7 +162,7 @@ impl<'a> BenchRunner<'a> {
         let log_file = log_dir.join(format!("{}.{}.log", bench, build_name));
         // Checkout the given commit if it's specified
         if let Some(commit) = &build.commit {
-            utils::git::checkout(&commit)?;
+            utils::git::checkout(commit)?;
         }
         let outputs = OpenOptions::new()
             .append(true)

@@ -126,11 +126,15 @@ impl RunArgs {
         }
         // Default build configs
         if profile.builds.is_empty() {
-            let mut head = BuildConfig::default();
-            head.commit = Some(utils::git::get_git_hash()?);
+            let head = BuildConfig {
+                commit: Some(utils::git::get_git_hash()?),
+                ..Default::default()
+            };
             profile.builds.insert("HEAD".to_owned(), head);
-            let mut head_1 = BuildConfig::default();
-            head_1.commit = Some(utils::git::get_second_last_git_hash()?);
+            let head_1 = BuildConfig {
+                commit: Some(utils::git::get_second_last_git_hash()?),
+                ..Default::default()
+            };
             profile.builds.insert("HEAD~1".to_owned(), head_1);
         }
         // Checks
@@ -209,7 +213,7 @@ impl RunArgs {
         let (runid, start_time) = self.generate_runid();
         let run_info = RunInfo::new(crate_info.clone(), profile, runid.clone(), start_time)?;
         let runner = runner::BenchRunner::new(&run_info);
-        runner.test_run(bench, &build)?;
+        runner.test_run(bench, build)?;
         Ok(())
     }
 
