@@ -16,6 +16,8 @@ use crate::{config, meta::RunInfo, print_md, utils};
 pub struct BenchRunner<'a> {
     /// Names of the benches to run
     benches: Vec<String>,
+    /// Sorted list of all build names
+    build_names: Vec<String>,
     /// Benchmark profile
     run: &'a RunInfo,
     logdir: Option<PathBuf>,
@@ -23,16 +25,22 @@ pub struct BenchRunner<'a> {
 }
 
 impl<'a> BenchRunner<'a> {
+    const BUILD_LABELS: &'static str = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    pub const MAX_SUPPORTED_BUILDS: usize = Self::BUILD_LABELS.len();
+
     pub fn new(run: &'a RunInfo) -> Self {
+        let mut build_names = run.profile.builds.keys().cloned().collect::<Vec<_>>();
+        build_names.sort();
         Self {
             benches: Vec::new(),
+            build_names,
             run,
             logdir: None,
             scratch_dir: run.crate_info.target_dir.join("harness").join("scratch"),
         }
     }
 
-    fn setup_before_benchmarking(&self) -> anyhow::Result<()> {
+    fn setup_env_before_benchmarking(&self) -> anyhow::Result<()> {
         std::env::set_var(
             "HARNESS_BENCH_SCRATCH_DIR",
             self.scratch_dir.to_str().unwrap(),
@@ -67,6 +75,7 @@ impl<'a> BenchRunner<'a> {
                 self.benches.push(target.name.clone());
             }
         }
+        self.benches.sort();
         Ok(())
     }
 
@@ -106,7 +115,7 @@ impl<'a> BenchRunner<'a> {
 
     /// Run one benchmark with one build, for N iterations.
     pub fn test_run(&self, bench: &str, build_name: &str) -> anyhow::Result<()> {
-        self.setup_before_benchmarking()?;
+        self.setup_env_before_benchmarking()?;
         self.setup_before_invocation()?;
         let build = self.run.profile.builds.get(build_name).unwrap();
         let mut cmd = Command::new("cargo");
@@ -221,10 +230,47 @@ impl<'a> BenchRunner<'a> {
             "* logs: `{}`",
             self.logdir.as_ref().unwrap().to_str().unwrap()
         );
-        print_md!("* benchmarks: `{}`", self.benches.len());
-        print_md!("* builds: `{}`", self.run.profile.builds.len());
-        print_md!("* invocations: `{}`", self.run.profile.invocations);
+        print_md!("* probes: `{}`", self.run.profile.probes.join(", "));
         print_md!("* iterations: `{}`", self.run.profile.iterations);
+        let i = self.run.profile.invocations;
+        let w = (i - 1).to_string().len();
+        print_md!(
+            "* invocations: `{}` {} {}{}{}",
+            self.run.profile.invocations,
+            "---".bright_black(),
+            format!("#{}", "0".repeat(w)).bold().on_cyan(),
+            " ~ ".bold().cyan(),
+            format!("#{}", i - 1).to_string().bold().on_cyan()
+        );
+        // dump plain output
+        print_md!(
+            "* benchmarks: {}",
+            self.benches
+                .iter()
+                .enumerate()
+                .map(|(i, v)| format!(
+                    "{}{}{}",
+                    i.to_string().italic().bold().blue(),
+                    "-".bright_black().italic(),
+                    v.to_owned().italic().blue()
+                ))
+                .collect::<Vec<_>>()
+                .join(", ")
+        );
+        print_md!(
+            "* builds: {}",
+            self.build_names
+                .iter()
+                .enumerate()
+                .map(|(i, v)| format!(
+                    "{}{}{}",
+                    self.get_build_label(i).green(),
+                    "-".bright_black(),
+                    v.to_owned().green().italic()
+                ))
+                .collect::<Vec<_>>()
+                .join(", ")
+        );
         println!();
         println!("{}\n", "Running Benchmarks...".blue());
     }
@@ -237,8 +283,29 @@ impl<'a> BenchRunner<'a> {
         print_md!("Please run `cargo harness report` to view results.\n");
     }
 
-    fn max_bench_name_len(&self) -> usize {
-        self.benches.iter().map(|b| b.len()).max().unwrap()
+    fn print_invoc_label(&self, i: usize) {
+        let max = self.run.profile.invocations - 1;
+        let max_w = max.to_string().len();
+        let w = i.to_string().len();
+        let label = format!(" #{}{} ", "0".repeat(max_w - w), i);
+        print!("{} ", label.on_cyan().bold());
+        io::stdout().flush().unwrap();
+    }
+
+    fn print_bench_label(&self, b: usize) {
+        print!("{}", format!("{}", b).bold().blue().italic());
+        io::stdout().flush().unwrap();
+    }
+
+    fn get_build_label(&self, index: usize) -> String {
+        const KEYS: &str = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        assert!(index < KEYS.len(), "Too many builds!");
+        KEYS.chars().nth(index).unwrap().to_string()
+    }
+
+    fn print_build_label(&self, b: usize) {
+        print!("{}", self.get_build_label(b).green());
+        io::stdout().flush().unwrap();
     }
 
     /// Run all benchmarks with all builds.
@@ -247,30 +314,24 @@ impl<'a> BenchRunner<'a> {
         self.logdir = Some(log_dir.to_owned());
         self.collect_benches()?;
         self.print_before_run();
-        self.setup_before_benchmarking()?;
-        let name_len = self.max_bench_name_len() + 3;
-        for bench in &self.benches {
-            print!("{}", bench.blue().bold());
-            (0..name_len - bench.len()).for_each(|_| print!(" "));
-            io::stdout().flush()?;
-            for i in 0..self.run.profile.invocations {
-                print!("{}", format!("{}", i).bold().blue().italic());
-                io::stdout().flush()?;
-                for (index, (build_name, build)) in self.run.profile.builds.iter().enumerate() {
-                    const KEYS: &str = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
-                    assert!(index < KEYS.len(), "Too many builds!");
-                    let key = KEYS.chars().nth(index).unwrap().to_string();
-                    let result =
-                        self.run_one(&self.run.profile, build_name, build, bench, log_dir, i);
-                    match result {
-                        Ok(_) => {
-                            print!("{}", key.green())
-                        }
+        self.setup_env_before_benchmarking()?;
+        for i in 0..self.run.profile.invocations {
+            // Start of an invocation
+            self.print_invoc_label(i);
+            for (bench_index, bench) in self.benches.iter().enumerate() {
+                // Start of a benchmark
+                self.print_bench_label(bench_index);
+                // Run the benchmark for each build
+                for (build_index, build_name) in self.build_names.iter().enumerate() {
+                    // Start of a build
+                    let build = &self.run.profile.builds[build_name];
+                    match self.run_one(&self.run.profile, build_name, build, bench, log_dir, i) {
+                        Ok(_) => self.print_build_label(build_index),
                         Err(_) => {
-                            print!("{}", "✘".red())
+                            print!("{}", "✘".red());
+                            io::stdout().flush()?;
                         }
                     }
-                    io::stdout().flush()?;
                 }
             }
             println!();

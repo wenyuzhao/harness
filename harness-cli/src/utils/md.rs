@@ -194,7 +194,7 @@ enum TableCell {
 }
 
 fn pad(c: char, count: usize) -> String {
-    (0..count).map(|_| c).collect::<String>()
+    c.to_string().repeat(count)
 }
 
 fn pad_start(s: &str, width: usize, c: char) -> String {

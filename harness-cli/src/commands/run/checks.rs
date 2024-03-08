@@ -7,6 +7,8 @@ use crate::meta::RunInfo;
 #[cfg(target_os = "linux")]
 use crate::meta::PLATFORM_INFO;
 
+use super::runner::BenchRunner;
+
 static BG: Lazy<CustomColor> = Lazy::new(|| CustomColor::new(0x23, 0x23, 0x23));
 
 struct PreBenchmarkingChecker<'a> {
@@ -47,6 +49,12 @@ impl<'a> PreBenchmarkingChecker<'a> {
         }
         if builds == 1 {
             self.warn("It's recommended to always have more than one builds.");
+        }
+        if builds >= BenchRunner::MAX_SUPPORTED_BUILDS {
+            anyhow::bail!(
+                "Too many builds. Maximum supported builds is {}.",
+                BenchRunner::MAX_SUPPORTED_BUILDS
+            );
         }
         // Identical builds?
         let names = self.run.profile.builds.keys().cloned().collect::<Vec<_>>();
@@ -309,11 +317,11 @@ fn dump_warnings(title: &str, warnings: &[String]) {
     if warnings.is_empty() {
         return;
     }
-    println!("{}\n", title.bold().black().on_red());
+    eprintln!("{}\n", title.bold().black().on_red());
     for msg in warnings {
         eprintln!("{} {}", "•".bright_red(), msg.red());
     }
-    println!();
+    eprintln!();
 }
 
 impl super::RunArgs {
