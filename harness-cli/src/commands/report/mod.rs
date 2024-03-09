@@ -107,11 +107,11 @@ impl ReportArgs {
         } else {
             printer.add("* Finish Time (UTC): `N/A`\n");
         }
-        printer.add(format!("* OS: `{}`\n", config.platform.os));
-        printer.add(format!("* CPU: `{}`\n", config.platform.cpu_model));
+        printer.add(format!("* OS: `{}`\n", config.system.os));
+        printer.add(format!("* CPU: `{}`\n", config.system.cpu_model));
         printer.add(format!(
             "* Memory: `{} GB`\n",
-            config.platform.memory_size >> 30
+            config.system.memory_size >> 30
         ));
         printer.add("\n## Mean Over All Invocations\n\n");
         printer.add_dataframe_with_ci(&avg_df, &ci_df);

@@ -1,8 +1,6 @@
 use colored::{Colorize, CustomColor};
 use once_cell::sync::Lazy;
 
-#[cfg(target_os = "linux")]
-use crate::meta::PLATFORM_INFO;
 use crate::{commands::run::RunArgs, meta::RunInfo};
 
 use super::super::runner::BenchRunner;
@@ -151,11 +149,11 @@ impl<'a> PreBenchmarkingChecker<'a> {
         self.check_common()?;
         self.check_perf_event()?;
         // Check if the current user is the only one logged in
-        if PLATFORM_INFO.users.len() > 1 {
+        let sys = &self.run.system;
+        if sys.users.len() > 1 {
             let msg = format!(
                 "More than one user logged in: {}",
-                PLATFORM_INFO
-                    .users
+                sys.users
                     .iter()
                     .map(|u| u.on_custom_color(*BG).to_string())
                     .collect::<Vec<_>>()
@@ -168,12 +166,8 @@ impl<'a> PreBenchmarkingChecker<'a> {
             }
         }
         // Check if all the scaling governors are set to `performance`
-        if !PLATFORM_INFO
-            .scaling_governor
-            .iter()
-            .all(|g| g == "performance")
-        {
-            let sg = PLATFORM_INFO.scaling_governor.clone();
+        if !sys.scaling_governor.iter().all(|g| g == "performance") {
+            let sg = sys.scaling_governor.clone();
             let mut sg_dedup = sg.clone();
             sg_dedup.dedup();
             let sg_info = sg_dedup

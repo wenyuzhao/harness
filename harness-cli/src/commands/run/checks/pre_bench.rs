@@ -57,14 +57,14 @@ impl<'a, 'b> ReproducibilityChecker<'a, 'b> {
     fn check(&mut self) -> anyhow::Result<()> {
         let old = &self.old;
         let new = &self.new;
-        self.check_changed("OS", &old.platform.os, &new.platform.os);
-        self.check_changed("Arch", &old.platform.arch, &new.platform.arch);
-        self.check_changed("Kernel", &old.platform.kernel, &new.platform.kernel);
-        self.check_changed("CPU", &old.platform.cpu_model, &new.platform.cpu_model);
-        self.check_changed_mem("Memory", old.platform.memory_size, new.platform.memory_size);
-        self.check_changed_mem("Swap", old.platform.swap_size, new.platform.swap_size);
-        self.check_changed("Rust Version", &old.platform.rustc, &new.platform.rustc);
-        if old.platform.env != new.platform.env {
+        self.check_changed("OS", &old.system.os, &new.system.os);
+        self.check_changed("Arch", &old.system.arch, &new.system.arch);
+        self.check_changed("Kernel", &old.system.kernel, &new.system.kernel);
+        self.check_changed("CPU", &old.system.cpu_model, &new.system.cpu_model);
+        self.check_changed_mem("Memory", old.system.memory_size, new.system.memory_size);
+        self.check_changed_mem("Swap", old.system.swap_size, new.system.swap_size);
+        self.check_changed("Rust Version", &old.system.rustc, &new.system.rustc);
+        if old.system.env != new.system.env {
             let mut s = "Environment Variables Changed:\n".to_owned();
             let mut list_env = |name: &str, old: &str, new: &str| {
                 s += &format!(
@@ -76,20 +76,20 @@ impl<'a, 'b> ReproducibilityChecker<'a, 'b> {
                     new.italic(),
                 );
             };
-            for (k, v) in &new.platform.env {
-                if old.platform.env.get(k) != Some(v) {
-                    list_env(k, old.platform.env.get(k).unwrap_or(&"".to_owned()), v);
+            for (k, v) in &new.system.env {
+                if old.system.env.get(k) != Some(v) {
+                    list_env(k, old.system.env.get(k).unwrap_or(&"".to_owned()), v);
                 }
             }
-            for (k, v) in &old.platform.env {
-                if !new.platform.env.contains_key(k) {
+            for (k, v) in &old.system.env {
+                if !new.system.env.contains_key(k) {
                     list_env(k, v, "");
                 }
             }
             self.warn(s.trim_end());
         }
         #[cfg(target_os = "linux")]
-        if old.platform.scaling_governor != new.platform.scaling_governor {
+        if old.system.scaling_governor != new.system.scaling_governor {
             let sg_summary = |sg: &[String]| {
                 let mut dedup = sg.to_vec();
                 dedup.dedup();
@@ -102,8 +102,8 @@ impl<'a, 'b> ReproducibilityChecker<'a, 'b> {
             };
             self.warn_changed(
                 "Scaling Governor",
-                sg_summary(&old.platform.scaling_governor),
-                sg_summary(&new.platform.scaling_governor),
+                sg_summary(&old.system.scaling_governor),
+                sg_summary(&new.system.scaling_governor),
             );
         }
         if old.profile.invocations != new.profile.invocations {
