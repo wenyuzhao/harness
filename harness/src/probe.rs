@@ -161,12 +161,19 @@ impl ProbeManager {
                     headers += ",";
                     headers += name;
                 }
+                for (name, _value) in extra_stats {
+                    headers += ",";
+                    headers += name;
+                }
                 headers += "\n";
                 std::fs::write(csv, headers).unwrap();
             }
             let mut record = format!("{},{},{}", name, build.unwrap(), invocation.unwrap_or(0));
             for (_name, value) in &self.counters.counters {
                 record += &format!(",{}", value);
+            }
+            for (_, value) in extra_stats {
+                record += &format!(",{}", value.to_string());
             }
             let mut csv = OpenOptions::new().append(true).open(csv).unwrap();
             writeln!(csv, "{record}").unwrap();

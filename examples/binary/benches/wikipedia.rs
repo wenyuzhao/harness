@@ -23,6 +23,15 @@ fn bar(bencher: &Bencher) {
     let out_file = HARNESS_BENCH_SCRATCH_DIR.join("out.zip");
     assert!(!out_file.exists());
     bencher.time(|| {
-        binary::compress(in_file, out_file);
+        binary::compress(&in_file, &out_file);
     });
+    // Get compressed size
+    let original_size = std::fs::metadata(&in_file).unwrap().len();
+    let compressed_size = std::fs::metadata(&out_file).unwrap().len();
+    bencher.add_stat("original-size", original_size);
+    bencher.add_stat("compressed-size", compressed_size);
+    bencher.add_stat(
+        "compression-ratio",
+        compressed_size as f64 / original_size as f64,
+    );
 }
