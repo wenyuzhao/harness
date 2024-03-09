@@ -12,6 +12,10 @@ harness = { path = "../../harness" }
 name = "wikipedia"
 harness = false
 
+[[bench]]
+name = "hd_image"
+harness = false
+
 [package.metadata.harness.profiles.default.builds]
 7z = { env = { BIN = "7z" } }
 zip = { env = { BIN = "zip" } }
