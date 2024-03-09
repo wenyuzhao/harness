@@ -1,12 +1,13 @@
 use harness::utils::{download_file, get_cached_file, HARNESS_BENCH_SCRATCH_DIR};
 use harness::{bench, Bencher};
 
-const NAME: &'static str = "marimba-curiosity-28932226176.jpg";
+const NAME: &'static str = "bigimage-samdutton-simpl.jpg";
 
 fn startup() {
     let file = get_cached_file(NAME)
         .or_else(|| {
-            let url = format!("https://upload.wikimedia.org/wikipedia/commons/7/7e/%22Marimba%22_-_Curiosity_%2828932226176%29.jpg");
+            let url =
+                format!("https://raw.githubusercontent.com/samdutton/simpl/36d111d4ab66ab61c6d192e3c00cdf676b623431/bigimage/bigImage.jpg");
             println!("Downloading file: {url}");
             download_file(NAME, url).unwrap();
             get_cached_file(NAME)

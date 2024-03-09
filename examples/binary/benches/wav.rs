@@ -1,13 +1,13 @@
 use harness::utils::{download_file, get_cached_file, HARNESS_BENCH_SCRATCH_DIR};
 use harness::{bench, Bencher};
 
-const NAME: &'static str = "file-examples-com-wav-2017-11.wav";
+const NAME: &'static str = "file-examples-com-wav-fe7590659365eb907974df6.wav";
 
 fn startup() {
     let file = get_cached_file(NAME)
         .or_else(|| {
             let url = format!(
-                "https://file-examples.com/wp-content/storage/2017/11/file_example_WAV_10MG.wav"
+                "https://file-examples.com/storage/fe7590659365eb907974df6/2017/11/file_example_WAV_10MG.wav"
             );
             println!("Downloading file: {url}");
             download_file(NAME, url).unwrap();
