@@ -83,12 +83,13 @@ impl<'a> BenchRunner<'a> {
         let Some(pkg) = meta.root_package() else {
             anyhow::bail!("No root package found");
         };
-        for target in &pkg.targets {
-            if target.is_bench() && self.run.crate_info.benches.contains(&target.name) {
-                self.benches.push(target.name.clone());
+        for name in &self.run.crate_info.benches {
+            let target = pkg.targets.iter().find(|t| &t.name == name && t.is_bench());
+            if target.is_none() {
+                anyhow::bail!("No bench target found for {}", name);
             }
+            self.benches.push(name.clone());
         }
-        self.benches.sort();
         Ok(())
     }
 

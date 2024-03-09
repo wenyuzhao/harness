@@ -40,7 +40,7 @@ impl<'a> PreBenchmarkingChecker<'a> {
     fn check_bench_configs(&mut self) -> anyhow::Result<()> {
         let benches = self.run.crate_info.benches.len();
         if benches == 0 {
-            anyhow::bail!("No benches found.");
+            anyhow::bail!("No benchmarks found.");
         }
         if benches == 1 {
             self.warn("Only one benchmark is probably not enough.");

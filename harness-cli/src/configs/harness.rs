@@ -67,7 +67,7 @@ impl CargoConfig {
             .bench
             .iter()
             .filter_map(|b| {
-                if b.harness {
+                if !b.harness {
                     Some(b.name.clone())
                 } else {
                     None
