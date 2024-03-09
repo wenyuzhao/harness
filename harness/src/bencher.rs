@@ -293,7 +293,7 @@ impl SingleBenchmarkRunner {
     pub fn run(&mut self) -> anyhow::Result<()> {
         self.bencher.probes.borrow_mut().init(&self.args.probes);
         let iterations = if self.is_single_shot {
-            eprintln!("WARNING: Force single-shot run.");
+            eprintln!("Harness: Single-shot run.");
             1
         } else {
             self.args.iterations
