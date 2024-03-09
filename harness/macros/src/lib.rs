@@ -29,10 +29,12 @@ struct BenchMacroArgs {
 /// # Example
 ///
 /// ```rust
+/// const LEN: usize = 10000000;
+///
 /// #[bench]
 /// fn example(bencher: &Bencher) {
 ///     // Prepare the inputs
-///     let mut list = black_box((0..LEN).collect::<Vec<_>>());
+///     let mut list = black_box((0..1000).collect::<Vec<_>>());
 ///     // Actual work. For the last timing iteration only this part will be measured.
 ///     let result = bencher.time(|| {
 ///         // Do some work here
@@ -57,6 +59,8 @@ struct BenchMacroArgs {
 /// fn example_teardown() {
 ///     // TODO: After benchmark cleanups. e.g. Delete the downloaded data.
 /// }
+///
+/// const LEN: usize = 10000000;
 ///
 /// #[bench(startup = example_startup, teardown = example_teardown)]
 /// fn example(bencher: &Bencher) {

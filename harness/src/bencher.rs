@@ -144,6 +144,8 @@ impl Bencher {
     /// # Example
     ///
     /// ```rust
+    /// const LEN: usize = 10000000;
+    ///
     /// #[bench]
     /// fn example(bencher: &Bencher) {
     ///     // Prepare the inputs
@@ -181,6 +183,8 @@ impl Bencher {
     /// # Example
     ///
     /// ```rust
+    /// const LEN: usize = 10000000;
+    ///
     /// #[bench]
     /// fn example(bencher: &Bencher) {
     ///     // Prepare the inputs
