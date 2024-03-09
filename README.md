@@ -108,7 +108,7 @@ Any change to the system environments would affect reproducibility. So it's reco
 - [x] Documentation
 - [x] Benchmark subsetting
 - [x] Handle no result cases
-- [ ] More examples
+- [x] More examples
 - [ ] Plugin system
 - [ ] Plugin: html or markdown report with graphs
 - [ ] Plugin: Copy files
