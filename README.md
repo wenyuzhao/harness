@@ -108,6 +108,7 @@ Any change to the system environments would affect reproducibility. So it's reco
 - [ ] More examples
 - [ ] Documentation
 - [ ] Benchmark subsetting
-- [ ] Post invocation: Copy files
-- [ ] Post invocation: Rsync results
-- [ ] Post invocation: Other customized hooks / plugins
+- [ ] Plugin system
+- [ ] Plugin: html or markdown report with graphs
+- [ ] Plugin: Copy files
+- [ ] Plugin: Rsync results
