@@ -13,7 +13,64 @@ struct BenchMacroArgs {
     teardown: Option<syn::Path>,
 }
 
-/// Annotation for the harness benchmark struct.
+/// Annotation for the benchmark function.
+///
+/// The annotated function will be invoked for **N** iterations at a time in a loop.
+///
+/// Iterations **0** ~ **N-2** will be used for warm-up, and the last iteration (**N-1**) will be used for measurement.
+///
+/// Each iteration has three phases:
+/// 1. **Prepare**: Prepare any data or resources needed for this iteration.
+/// 2. **Timing**: Perform the actual work. This should be wrapped in a call to `bencher.time()`.
+/// 3. **Release**: Clean up any data or resources, and perform any necessary result checks.
+///
+/// **Note:**: Each benchmark file should contain exactly one benchmark function.
+///
+/// # Example
+///
+/// ```rust
+/// #[bench]
+/// fn example(bencher: &Bencher) {
+///     // Prepare the inputs
+///     let mut list = black_box((0..LEN).collect::<Vec<_>>());
+///     // Actual work. For the last timing iteration only this part will be measured.
+///     let result = bencher.time(|| {
+///         // Do some work here
+///         list.iter().sum::<usize>()
+///     });
+///     // Release the resources and check the result
+///     assert_eq!(result, LEN * (LEN - 1) / 2)
+/// }
+/// ```
+///
+/// # Startup and Teardown
+///
+/// To run some extra code _once_ before and after the benchmark, please use the `startup` and `teardown` hooks in the attributes.
+///
+/// `startup` is called ones before all the iterations, and `teardown` is called once after all the iterations.
+///
+/// ```rust
+/// fn example_startup() {
+///     // TODO: Pre-benchmark initialization. e.g. Download data for the benchmark.
+/// }
+///
+/// fn example_teardown() {
+///     // TODO: After benchmark cleanups. e.g. Delete the downloaded data.
+/// }
+///
+/// #[bench(startup = example_startup, teardown = example_teardown)]
+/// fn example(bencher: &Bencher) {
+///     // Prepare the inputs
+///     let mut list = black_box((0..LEN).collect::<Vec<_>>());
+///     // Actual work. For the last timing iteration only this part will be measured.
+///     let result = bencher.time(|| {
+///         // Do some work here
+///         list.iter().sum::<usize>()
+///     });
+///     // Release the resources and check the result
+///     assert_eq!(result, LEN * (LEN - 1) / 2)
+/// }
+/// ````
 #[proc_macro_attribute]
 pub fn bench(attr: TokenStream, item: TokenStream) -> TokenStream {
     let input = syn::parse_macro_input!(item as syn::ItemFn);
