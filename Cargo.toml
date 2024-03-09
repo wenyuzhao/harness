@@ -9,4 +9,5 @@ members = [
     "probes/perf",
     # Examples
     "examples/sort",
+    "examples/empty",
 ]
