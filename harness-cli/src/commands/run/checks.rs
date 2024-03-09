@@ -41,6 +41,17 @@ impl<'a> PreBenchmarkingChecker<'a> {
         self.warnings.push(msg.as_ref().to_owned());
     }
 
+    fn check_bench_configs(&mut self) -> anyhow::Result<()> {
+        let benches = self.run.crate_info.benches.len();
+        if benches == 0 {
+            anyhow::bail!("No benches found.");
+        }
+        if benches == 1 {
+            self.warn("Only one benchmark is probably not enough.");
+        }
+        Ok(())
+    }
+
     fn check_build_configs(&mut self) -> anyhow::Result<()> {
         // No builds or only one build?
         let builds = self.run.profile.builds.len();
@@ -132,6 +143,7 @@ impl<'a> PreBenchmarkingChecker<'a> {
 
     fn check_common(&mut self) -> anyhow::Result<()> {
         self.check_dirty_git_worktree()?;
+        self.check_bench_configs()?;
         self.check_build_configs()?;
         Ok(())
     }

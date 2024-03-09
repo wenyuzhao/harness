@@ -14,6 +14,8 @@ pub struct CrateInfo {
     pub name: String,
     /// Path to the target directory
     pub target_dir: PathBuf,
+    /// Benchmark names
+    pub benches: Vec<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

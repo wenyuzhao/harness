@@ -78,7 +78,7 @@ impl<'a> BenchRunner<'a> {
             anyhow::bail!("No root package found");
         };
         for target in &pkg.targets {
-            if target.is_bench() {
+            if target.is_bench() && self.run.crate_info.benches.contains(&target.name) {
                 self.benches.push(target.name.clone());
             }
         }

@@ -3,8 +3,10 @@ use std::{collections::HashMap, path::PathBuf};
 use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize)]
-struct CargoConfig {
+pub(crate) struct CargoConfig {
     package: CargoConfigPackage,
+    #[serde(default)]
+    pub(crate) bench: Vec<CargoBenchConfig>,
     #[serde(flatten)]
     _others: HashMap<String, toml::Value>,
 }
@@ -12,6 +14,15 @@ struct CargoConfig {
 #[derive(Deserialize)]
 struct CargoConfigPackage {
     metadata: Option<CargoConfigPackageMetadata>,
+    #[serde(flatten)]
+    _others: HashMap<String, toml::Value>,
+}
+
+#[derive(Deserialize)]
+pub(crate) struct CargoBenchConfig {
+    pub(crate) name: String,
+    #[serde(default)]
+    pub(crate) harness: bool,
     #[serde(flatten)]
     _others: HashMap<String, toml::Value>,
 }
@@ -122,4 +133,12 @@ pub fn load_from_cargo_toml() -> anyhow::Result<HarnessConfig> {
             .insert("default".to_owned(), Default::default());
     }
     Ok(harness)
+}
+
+pub fn load_cargo_toml() -> anyhow::Result<CargoConfig> {
+    if !PathBuf::from("./Cargo.toml").is_file() {
+        anyhow::bail!("Failed to load ./Cargo.toml");
+    }
+    let s = std::fs::read_to_string("./Cargo.toml")?;
+    Ok(toml::from_str::<CargoConfig>(&s)?)
 }

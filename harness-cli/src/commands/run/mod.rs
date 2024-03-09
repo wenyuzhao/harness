@@ -69,9 +69,21 @@ impl RunArgs {
         let Some(pkg) = meta.root_package() else {
             anyhow::bail!("No root package found");
         };
+        let benches = config::load_cargo_toml()?
+            .bench
+            .iter()
+            .filter_map(|b| {
+                if b.harness {
+                    Some(b.name.clone())
+                } else {
+                    None
+                }
+            })
+            .collect();
         Ok(CrateInfo {
             name: pkg.name.clone(),
             target_dir: target_dir.to_owned(),
+            benches,
         })
     }
 
@@ -137,6 +149,12 @@ impl RunArgs {
             };
             profile.builds.insert("HEAD~1".to_owned(), head_1);
         }
+        // If this is a reproduced run, use the old crate info
+        let crate_info = if let Some(old) = old_run {
+            old.crate_info.clone()
+        } else {
+            crate_info
+        };
         // Checks
         let (runid, start_time) = self.generate_runid();
         let run_info = RunInfo::new(crate_info, profile, runid.clone(), start_time)?;
