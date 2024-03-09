@@ -155,13 +155,11 @@ impl RunArgs {
         } else {
             crate_info
         };
-        // Checks
+        // Create a new run
         let (runid, start_time) = self.generate_runid();
         let run_info = RunInfo::new(crate_info, profile, runid.clone(), start_time)?;
-        if let Some(old) = old_run {
-            self.reproducibility_checks(old, &run_info)?;
-        }
-        self.pre_benchmarking_checks(&run_info)?;
+        // Run checks
+        checks::run_all_checks(self, &run_info, old_run)?;
         // Initialize logs dir
         let log_dir = self.prepare_logs_dir(&run_info.crate_info, &runid)?;
         // Run benchmarks
