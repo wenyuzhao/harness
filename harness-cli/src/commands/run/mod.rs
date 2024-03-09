@@ -7,7 +7,7 @@ use termimad::crossterm::style::Stylize;
 
 use crate::{
     config::{self, BuildConfig, Profile},
-    meta::{CrateInfo, RunInfo},
+    config::{CrateInfo, RunInfo},
     utils,
 };
 
@@ -69,7 +69,7 @@ impl RunArgs {
         let Some(pkg) = meta.root_package() else {
             anyhow::bail!("No root package found");
         };
-        let benches = config::load_cargo_toml()?
+        let benches = config::CargoConfig::load_cargo_toml()?
             .bench
             .iter()
             .filter_map(|b| {
@@ -210,7 +210,7 @@ impl RunArgs {
         }
         let bench = self.bench.as_ref().unwrap();
         // let build = self.build.as_ref().unwrap();
-        let config = config::load_from_cargo_toml()?;
+        let config = config::HarnessConfig::load_from_cargo_toml()?;
         let Some(mut profile) = config.profiles.get(&self.profile).cloned() else {
             anyhow::bail!("Could not find harness profile `{}`", self.profile);
         };
@@ -245,7 +245,7 @@ impl RunArgs {
             (profile, Some(old_run))
         } else {
             // A new run
-            let config = config::load_from_cargo_toml()?;
+            let config = config::HarnessConfig::load_from_cargo_toml()?;
             let Some(profile) = config.profiles.get(&self.profile).cloned() else {
                 anyhow::bail!("Could not find harness profile `{}`", self.profile);
             };

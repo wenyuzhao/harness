@@ -9,7 +9,7 @@ use std::{
 use cargo_metadata::MetadataCommand;
 use colored::Colorize;
 
-use crate::{config, meta::RunInfo, print_md, utils};
+use crate::{config, config::RunInfo, print_md, utils};
 
 /// Benchmark running info
 #[derive(Debug)]
