@@ -1,7 +1,7 @@
 use harness::utils::{download_file, exec, get_cached_file, HARNESS_BENCH_SCRATCH_DIR};
 use harness::{bench, Bencher};
 
-const NAME: &'static str = "enwiki-20240101-pages-articles-multistream24.xml-p56564554p57025655";
+const NAME: &'static str = "enwiki-20240101-pages-articles-multistream16.xml-p20460153p20570392";
 
 fn startup() {
     let file = get_cached_file(NAME)

@@ -9,11 +9,15 @@ edition = "2021"
 harness = { path = "../../harness" }
 
 [[bench]]
-name = "wikipedia"
+name = "xml"
 harness = false
 
 [[bench]]
-name = "hd_image"
+name = "jpg"
+harness = false
+
+[[bench]]
+name = "wav"
 harness = false
 
 [package.metadata.harness.profiles.default.builds]
