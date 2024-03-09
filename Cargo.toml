@@ -10,4 +10,5 @@ members = [
     # Examples
     "examples/sort",
     "examples/simple",
+    "examples/binary",
 ]

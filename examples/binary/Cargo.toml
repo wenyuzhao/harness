@@ -1,0 +1,17 @@
+[package]
+name = "binary"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+harness = { path = "../../harness" }
+
+[[bench]]
+name = "wikipedia"
+harness = false
+
+[package.metadata.harness.profiles.default.builds]
+7z = { env = { BIN = "7z" } }
+zip = { env = { BIN = "zip" } }
