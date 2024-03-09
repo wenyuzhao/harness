@@ -20,6 +20,8 @@
 3. Start an evaluation: `cargo harness run`.
 4. View results: `cargo harness report`.
 
+Please see more [examples](/examples) on how to configure and use `cargo-harness`. The evaluation configs can be found in _Cargo.toml_ of each example crate.
+
 # _<ins>Precise</ins>_ Measurement
 
 ## Interleaved runs
@@ -101,11 +103,11 @@ Any change to the system environments would affect reproducibility. So it's reco
 - [x] Scratch folder
 - [x] Default to compare HAED vs HEAD~1
 - [x] Restore git states after benchmarking
+- [x] Comments for public api
 - [ ] Handle no result cases
 - [ ] More examples
 - [ ] Documentation
 - [ ] Benchmark subsetting
-- [ ] Comments for public api
 - [ ] Post invocation: Copy files
 - [ ] Post invocation: Rsync results
 - [ ] Post invocation: Other customized hooks / plugins
