@@ -112,6 +112,12 @@ impl Bencher {
         self.current_iteration = iteration;
         self.extra_stats.lock().unwrap().clear();
         *self.state.lock().unwrap() = BencherState::BeforeTiming;
+        // Erase scratch directory
+        let scratch_dir = &*crate::utils::HARNESS_BENCH_SCRATCH_DIR;
+        if scratch_dir.exists() {
+            std::fs::remove_dir_all(&scratch_dir).unwrap();
+        }
+        std::fs::create_dir_all(&scratch_dir).unwrap();
     }
 
     fn iter_end(&mut self) {

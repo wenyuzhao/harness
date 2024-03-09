@@ -72,7 +72,7 @@ impl<'a> BenchRunner<'a> {
 
     fn setup_before_invocation(&self) -> anyhow::Result<()> {
         if self.scratch_dir.exists() {
-            std::fs::remove_dir(&self.scratch_dir)?;
+            std::fs::remove_dir_all(&self.scratch_dir)?;
         }
         std::fs::create_dir_all(&self.scratch_dir)?;
         Ok(())
@@ -159,6 +159,8 @@ impl<'a> BenchRunner<'a> {
             cmd.args(["--probes".to_owned(), self.run.profile.probes.join(",")]);
         }
         let mut envs = self.run.profile.env.clone();
+        println!("P ENV: {:?}", self.run.profile.env);
+        println!("B {} ENV: {:?}", build_name, build.env);
         for (k, v) in &build.env {
             envs.insert(k.clone(), v.clone());
         }
@@ -223,7 +225,11 @@ impl<'a> BenchRunner<'a> {
         if !profile.probes.is_empty() {
             cmd.args(["--probes".to_owned(), profile.probes.join(",")]);
         }
+        println!("P ENV: {:?}", profile.env);
+        println!("B {} ENV: {:?}", build_name, build.env);
+
         let mut envs = profile.env.clone();
+
         for (k, v) in &build.env {
             envs.insert(k.clone(), v.clone());
         }
