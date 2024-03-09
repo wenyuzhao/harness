@@ -12,6 +12,7 @@
 * [**_<ins>Reproducible</ins>_** Evaluation](#reproducible-evaluation)
   * [Git-tracked evaluation configs](#git-tracked-evaluation-configs)
   * [Tracked system environments](#tracked-system-environments)
+* [SIGPLAN Empirical Evaluation Checklist](https://github.com/SIGPLAN/empirical-evaluation/raw/master/checklist/checklist.pdf)
 
 # Getting Started
 
@@ -104,11 +105,12 @@ Any change to the system environments would affect reproducibility. So it's reco
 - [x] Default to compare HAED vs HEAD~1
 - [x] Restore git states after benchmarking
 - [x] Comments for public api
-- [ ] Handle no result cases
+- [x] Documentation
+- [x] Benchmark subsetting
+- [x] Handle no result cases
 - [ ] More examples
-- [ ] Documentation
-- [ ] Benchmark subsetting
 - [ ] Plugin system
 - [ ] Plugin: html or markdown report with graphs
 - [ ] Plugin: Copy files
 - [ ] Plugin: Rsync results
+- [ ] Performance evaluation guide / tutorial
