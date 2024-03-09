@@ -343,7 +343,7 @@ impl super::RunArgs {
         let mut checker = PreBenchmarkingChecker::new(
             run,
             self.allow_dirty,
-            self.allow_multi_user,
+            self.allow_multiple_users,
             self.allow_any_scaling_governor,
         );
         checker.check()?;

@@ -19,10 +19,10 @@ mod runner;
 /// Start a benchmarking run
 #[derive(Parser)]
 pub struct RunArgs {
-    /// Number of iterations
+    /// Number of iterations. Default is 5, or the value specified in the profile.
     #[arg(short = 'n', long)]
     pub iterations: Option<usize>,
-    /// Number of invocations
+    /// Number of invocations. Default is 10, or the value specified in the profile.
     #[arg(short = 'i', long)]
     pub invocations: Option<usize>,
     /// Benchmarking profile
@@ -33,7 +33,7 @@ pub struct RunArgs {
     pub allow_dirty: bool,
     /// (Linux only) Allow benchmarking even when multiple users are logged in
     #[arg(long, default_value = "false")]
-    pub allow_multi_user: bool,
+    pub allow_multiple_users: bool,
     /// (Linux only) Allow any scaling governor value, instead of only `performance`
     #[arg(long, default_value = "false")]
     pub allow_any_scaling_governor: bool,
