@@ -28,7 +28,7 @@ pub struct RunArgs {
     #[arg(short = 'i', long)]
     pub invocations: Option<usize>,
     /// Benchmarking profile
-    #[arg(long, default_value = "default")]
+    #[arg(short, long, default_value = "default")]
     pub profile: String,
     /// Allow dirty working directories
     #[arg(long, default_value = "false")]
