@@ -28,6 +28,7 @@ pub struct BenchRunner<'a> {
     run: &'a RunInfo,
     log_dir: Option<PathBuf>,
     scratch_dir: PathBuf,
+    cache_dir: PathBuf,
 }
 
 impl<'a> BenchRunner<'a> {
@@ -43,6 +44,7 @@ impl<'a> BenchRunner<'a> {
             run,
             log_dir: None,
             scratch_dir: run.crate_info.target_dir.join("harness").join("scratch"),
+            cache_dir: run.crate_info.target_dir.join("harness").join("cache"),
         }
     }
 
@@ -54,6 +56,7 @@ impl<'a> BenchRunner<'a> {
     }
 
     fn setup_env_before_benchmarking(&self) -> anyhow::Result<()> {
+        std::env::set_var("HARNESS_BENCH_CACHE_DIR", self.cache_dir.to_str().unwrap());
         std::env::set_var(
             "HARNESS_BENCH_SCRATCH_DIR",
             self.scratch_dir.to_str().unwrap(),
@@ -63,6 +66,7 @@ impl<'a> BenchRunner<'a> {
         }
         std::env::set_var("HARNESS_BENCH_RUNID", self.run.runid.as_str());
         std::fs::create_dir_all(&self.scratch_dir)?;
+        std::fs::create_dir_all(&self.cache_dir)?;
         Ok(())
     }
 

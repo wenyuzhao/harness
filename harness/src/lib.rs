@@ -1,5 +1,6 @@
 mod bencher;
 pub mod probe;
+pub mod utils;
 
 pub use bencher::{BenchTimer, Bencher, Value};
 pub use harness_macros::{bench, probe};
