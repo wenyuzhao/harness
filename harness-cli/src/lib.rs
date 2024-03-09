@@ -5,7 +5,8 @@ use once_cell::sync::Lazy;
 #[macro_use]
 mod utils;
 mod commands;
-mod config;
+
+pub mod configs;
 
 /// The Precise and Reproducible Benchmarking Harness CLI
 #[derive(Parser)]
@@ -15,7 +16,7 @@ struct Cli {
 }
 
 #[derive(Subcommand)]
-pub enum Commands {
+enum Commands {
     Run(commands::run::RunArgs),
     Report(commands::report::ReportArgs),
 }

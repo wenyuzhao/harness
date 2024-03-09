@@ -1,7 +1,7 @@
 use colored::{Colorize, CustomColor};
 use once_cell::sync::Lazy;
 
-use crate::{commands::run::RunArgs, config::RunInfo};
+use crate::{commands::run::RunArgs, configs::run_info::RunInfo};
 
 use super::super::runner::BenchRunner;
 

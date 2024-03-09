@@ -1,6 +1,6 @@
 use sysinfo::{CpuExt, System, SystemExt};
 
-use crate::config::SystemInfo;
+use crate::configs::run_info::SystemInfo;
 
 #[cfg(target_os = "linux")]
 fn get_logged_in_users() -> anyhow::Result<Vec<String>> {

@@ -3,7 +3,7 @@ use std::cell::RefCell;
 use colored::{Colorize, CustomColor};
 use once_cell::sync::Lazy;
 
-use crate::config::RunInfo;
+use crate::configs::run_info::RunInfo;
 
 static BG: Lazy<CustomColor> = Lazy::new(|| CustomColor::new(0x23, 0x23, 0x23));
 

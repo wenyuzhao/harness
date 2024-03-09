@@ -9,7 +9,13 @@ use std::{
 use cargo_metadata::MetadataCommand;
 use colored::Colorize;
 
-use crate::{config, config::RunInfo, print_md, utils};
+use crate::{
+    configs::{
+        harness::{BuildConfig, Profile},
+        run_info::RunInfo,
+    },
+    print_md, utils,
+};
 
 /// Benchmark running info
 #[derive(Debug)]
@@ -92,7 +98,7 @@ impl<'a> BenchRunner<'a> {
         &self,
         f: &mut impl Write,
         cmd: &Command,
-        build: &config::BuildConfig,
+        build: &BuildConfig,
         envs: &HashMap<String, String>,
     ) -> anyhow::Result<()> {
         writeln!(f, "---")?;
@@ -166,9 +172,9 @@ impl<'a> BenchRunner<'a> {
     /// Run one benchmark with one build, for N iterations.
     fn run_one(
         &self,
-        profile: &config::Profile,
+        profile: &Profile,
         build_name: &str,
-        build: &config::BuildConfig,
+        build: &BuildConfig,
         bench: &str,
         log_dir: &Path,
         invocation: usize,

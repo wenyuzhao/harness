@@ -6,8 +6,10 @@ use clap::Parser;
 use termimad::crossterm::style::Stylize;
 
 use crate::{
-    config::{self, BuildConfig, Profile},
-    config::{CrateInfo, RunInfo},
+    configs::{
+        harness::{BuildConfig, CargoConfig, HarnessConfig, Profile},
+        run_info::{CrateInfo, RunInfo},
+    },
     utils,
 };
 
@@ -69,17 +71,7 @@ impl RunArgs {
         let Some(pkg) = meta.root_package() else {
             anyhow::bail!("No root package found");
         };
-        let benches = config::CargoConfig::load_cargo_toml()?
-            .bench
-            .iter()
-            .filter_map(|b| {
-                if b.harness {
-                    Some(b.name.clone())
-                } else {
-                    None
-                }
-            })
-            .collect();
+        let benches = CargoConfig::load_benches()?;
         Ok(CrateInfo {
             name: pkg.name.clone(),
             target_dir: target_dir.to_owned(),
@@ -209,8 +201,7 @@ impl RunArgs {
             anyhow::bail!("Cannot specify config for a single-shot test run");
         }
         let bench = self.bench.as_ref().unwrap();
-        // let build = self.build.as_ref().unwrap();
-        let config = config::HarnessConfig::load_from_cargo_toml()?;
+        let config = HarnessConfig::load_from_cargo_toml()?;
         let Some(mut profile) = config.profiles.get(&self.profile).cloned() else {
             anyhow::bail!("Could not find harness profile `{}`", self.profile);
         };
@@ -245,7 +236,7 @@ impl RunArgs {
             (profile, Some(old_run))
         } else {
             // A new run
-            let config = config::HarnessConfig::load_from_cargo_toml()?;
+            let config = HarnessConfig::load_from_cargo_toml()?;
             let Some(profile) = config.profiles.get(&self.profile).cloned() else {
                 anyhow::bail!("Could not find harness profile `{}`", self.profile);
             };

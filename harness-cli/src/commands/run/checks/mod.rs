@@ -1,6 +1,6 @@
 use colored::Colorize;
 
-use crate::config::RunInfo;
+use crate::configs::run_info::RunInfo;
 
 use super::RunArgs;
 
