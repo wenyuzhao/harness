@@ -56,7 +56,7 @@ impl RunArgs {
     fn generate_runid(&self) -> (String, DateTime<chrono::Local>) {
         let t = chrono::Local::now();
         let time = t.format("%Y-%m-%d-%a-%H%M%S").to_string();
-        let host = crate::meta::SYSTEM_INFO.host.clone();
+        let host = utils::sys::get_current_host();
         let run_id = format!("{}-{}-{}", self.profile, host, time);
         (run_id, t)
     }

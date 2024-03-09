@@ -1,7 +1,6 @@
 use std::{collections::HashMap, path::PathBuf};
 
 use chrono::{DateTime, Local};
-use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 
 use crate::{config::Profile, utils};
@@ -49,7 +48,7 @@ impl RunInfo {
     ) -> anyhow::Result<Self> {
         Ok(Self {
             crate_info,
-            system: SYSTEM_INFO.clone(),
+            system: utils::sys::get_current_system_info(),
             profile,
             runid,
             commit: utils::git::get_git_hash()?,
@@ -87,5 +86,3 @@ pub struct SystemInfo {
     #[serde(rename = "scaling-governor")]
     pub scaling_governor: Vec<String>,
 }
-
-pub static SYSTEM_INFO: Lazy<SystemInfo> = Lazy::new(|| utils::sys::get_current_system_info());

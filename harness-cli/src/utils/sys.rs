@@ -47,6 +47,12 @@ fn get_rustc_version() -> Option<String> {
     ))
 }
 
+pub fn get_current_host() -> String {
+    let mut sys = System::new_all();
+    sys.refresh_all();
+    sys.host_name().unwrap_or_else(|| "<unknown>".to_string())
+}
+
 pub fn get_current_system_info() -> SystemInfo {
     let mut sys = System::new_all();
     sys.refresh_all();
