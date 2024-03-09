@@ -1,2 +1,4 @@
 [alias]
-_harness = "run --package harness-cli --bin harness --"
+# For debugging perpose.
+# Usage: cargo harness-dev run ...
+harness-dev = "run --package harness-cli --bin harness --"
