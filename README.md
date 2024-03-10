@@ -34,7 +34,7 @@ Please see more [examples](/examples) on how to configure and use `harness`. The
 
 **`harness` avoids running the same benchmark multiple times in a loop**, unlike what most existing Rust benchmarking tools would do.
 
-For a evaluation, given benchmark programs $P_1..P_p$, builds $B_1..B_b$, and we run each $(P, B)$ pair for $I$ invocations, `harness` will use the following run order, row by row:
+For an evaluation, given benchmark programs $P_1..P_p$, builds $B_1..B_b$, and we run each $(P, B)$ pair for $I$ invocations, `harness` will use the following run order, row by row:
 
 $$I_1\ :\ [P_1B_1,\ P_1B_2,\ ..,\ P_1B_b],\ \ \ [P_2B_1,\ P_2B_2,\ ..,\ P_2B_b]\ \ \ ...\ \ \ [P_pB_1,\ P_pB_2,\ ..,\ P_pB_b]$$
 
