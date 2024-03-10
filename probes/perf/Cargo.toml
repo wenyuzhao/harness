@@ -2,7 +2,7 @@
 name = "harness-probe-perf"
 version = "0.0.1"
 edition = "2021"
-description = "cargo-harness probe for preporting linux perf-event counter values"
+description = "harness probe for preporting linux perf-event counter values"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

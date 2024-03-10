@@ -1,4 +1,4 @@
-# cargo-harness
+# harness
 
 **_<ins>Precise</ins>_** and **_<ins>reproducible</ins>_** benchmarking. Inspired by [running-ng](https://anupli.github.io/running-ng).
 
@@ -17,17 +17,17 @@
 # Getting Started
 
 1. Install the harness CLI: `cargo install harness-cli`.
-2. Get the example crate: `git clone https://github.com/wenyuzhao/cargo-harness.git && cd cargo-harness/examples/sort`.
+2. Get the example crate: `git clone https://github.com/wenyuzhao/harness.git && cd harness/examples/sort`.
 3. Start an evaluation: `cargo harness run`.
 4. View results: `cargo harness report`.
 
-Please see more [examples](/examples) on how to configure and use `cargo-harness`. The evaluation configs can be found in _Cargo.toml_ of each example crate.
+Please see more [examples](/examples) on how to configure and use `harness`. The evaluation configs can be found in _Cargo.toml_ of each example crate.
 
 # _<ins>Precise</ins>_ Measurement
 
 ## Interleaved runs
 
-For a evaluation, given benchmark programs $P_1..P_p$, builds $B_1..B_b$, and we run each $(P, B)$ pair for $I$ invocations, `cargo-harness` will use the following run order, row by row:
+For a evaluation, given benchmark programs $P_1..P_p$, builds $B_1..B_b$, and we run each $(P, B)$ pair for $I$ invocations, `harness` will use the following run order, row by row:
 
 $$I_1\ :\ [P_1B_1,\ P_1B_2,\ ..,\ P_1B_b],\ \ \ [P_2B_1,\ P_2B_2,\ ..,\ P_2B_b]\ \ \ ...\ \ \ [P_pB_1,\ P_pB_2,\ ..,\ P_pB_b]$$
 
@@ -47,13 +47,13 @@ When running benchmarks in a complex environment, rather than on a dedicated hea
 
 ## Warmup / timing phase separation
 
-Instead of blindly iterating a single benchmark multiple times and reporting the per-iteration time distribution, `cargo-harness` has a clear notion of _warmup_ and _timing_ iterations. By default, each invocation of $(P,B)$ will repeat the workload for $5$ iterations. The first $4$ iterations are used for warmup. Only the results from the last _timing_ iteration are reported.
+Instead of blindly iterating a single benchmark multiple times and reporting the per-iteration time distribution, `harness` has a clear notion of _warmup_ and _timing_ iterations. By default, each invocation of $(P,B)$ will repeat the workload for $5$ iterations. The first $4$ iterations are used for warmup. Only the results from the last _timing_ iteration are reported.
 
 _Warmup_ / _timing_ separation can greatly reduce the noise due to the relatively unpredictable warmup oor boot phase. However, you can also choose to do single-iteration runs to cover the boot time and warmup cost.
 
 ## Statistical runs and analysis
 
-Similar to other benchmarking tools, `cargo-harness` runs each $(P,B)$ pair multiple times (multiple invocations). However, we use a fixed number of invocations for all $(P,B)$ pairs for easier reasoning purposes. Unless specified differently, each $(P,B)$ is run for 10 invocations by default.
+Similar to other benchmarking tools, `harness` runs each $(P,B)$ pair multiple times (multiple invocations). However, we use a fixed number of invocations for all $(P,B)$ pairs for easier reasoning purposes. Unless specified differently, each $(P,B)$ is run for 10 invocations by default.
 
 After all the $I$ invocations are finished, running `cargo harness report` will parse the results and report the min/max/mean/geomean for each performance value, as well as the 95% confidence interval per benchmark.
 
@@ -68,7 +68,7 @@ In addition to report the running time, it's possible to optionally enable the f
 
 ## System checks
 
-`cargo-harness` performs a series of strict checks to minimize benchmarking noise and ensure correctness. It refuses to start benchmarking if any of the following checks fail:
+`harness` performs a series of strict checks to minimize benchmarking noise and ensure correctness. It refuses to start benchmarking if any of the following checks fail:
 
 * There are no uncommitted changes in the repo (mainly for correctness and reproducibility)
 * (*Linux-only*) Only one user is logged in
@@ -78,22 +78,22 @@ In addition to report the running time, it's possible to optionally enable the f
 
 ## Git-tracked evaluation configs
 
-Evaluation configs are forced to be tracked by Git alongside your Rust crate. `cargo-harness` enforces that all changes in the current git repo, including the evaluation config itself, must be committed prior to running the benchmark. Otherwise, it will refuse to run.
+Evaluation configs are forced to be tracked by Git alongside your Rust crate. `harness` enforces that all changes in the current git repo, including the evaluation config itself, must be committed prior to running the benchmark. Otherwise, it will refuse to run.
 
 This ensures that each different evaluation alongside the benchmarked code is being tracked properly, without any accidental changes. Hence, it becomes possible to check the correctness or any details of any historical evaluations, by simply tracking back the git history.
 
 ## Tracked system environments
 
-`cargo-harness` assigns each individual evaluation a unique `RUNID` and generates a evaluation summary at `target/harness/logs/<RUNID>/config.toml`. The following environmental or evaluation info is tracked in the summary config file:
+`harness` assigns each individual evaluation a unique `RUNID` and generates a evaluation summary at `target/harness/logs/<RUNID>/config.toml`. The following environmental or evaluation info is tracked in the summary config file:
 
 * Git commit of the evaluation config
 * Git commit, cargo features, and environment variables used for producing each evaluated build
 * All global environment variables at the time of the run
 * OS / CPU / Memory / Cache information used for the run
 
-Reproducing a previous evaluation is as simple as running `cargo harness run --config <RUNID>`. `cargo-harness` automatically checks out the corresponding commits to ensure the codebase is exactly at the same state as the time `RUNID` was generated.
+Reproducing a previous evaluation is as simple as running `cargo harness run --config <RUNID>`. `harness` automatically checks out the corresponding commits to ensure the codebase is exactly at the same state as the time `RUNID` was generated.
 
-Any change to the system environments would affect reproducibility. So it's recommended to keep the same environment variables and the same OS / CPU / Memory / Cache config _as much as possible_. `cargo-harness` automatically compares the current system info against the recorded ones and warns the user for any differences.
+Any change to the system environments would affect reproducibility. So it's recommended to keep the same environment variables and the same OS / CPU / Memory / Cache config _as much as possible_. `harness` automatically compares the current system info against the recorded ones and warns the user for any differences.
 
 # TODO:
 

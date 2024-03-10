@@ -249,7 +249,7 @@ impl SingleBenchmarkRunner {
         let crate_name = if let Some(n) = args.overwrite_crate_name.as_ref() {
             n.clone()
         } else {
-            "cargo-harness".to_owned()
+            "harness".to_owned()
         };
         Self {
             args: BenchArgs::parse(),
