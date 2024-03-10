@@ -38,7 +38,7 @@ static CMD_ARGS: Lazy<Cli> = Lazy::new(|| {
 
 #[doc(hidden)]
 pub fn main() -> anyhow::Result<()> {
-    let git = git_info::get();
+    let git = git_info2::get();
     let run_result = match &CMD_ARGS.command {
         Commands::Run(cmd) => cmd.run(),
         Commands::Report(cmd) => cmd.run(),

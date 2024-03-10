@@ -1,9 +1,9 @@
 use std::process::Command;
 
-use git_info::types::GitInfo;
+use git_info2::types::GitInfo;
 
 pub fn get_git_hash() -> anyhow::Result<String> {
-    let git_info = git_info::get();
+    let git_info = git_info2::get();
     let mut hash = git_info
         .head
         .last_commit_hash
@@ -33,7 +33,7 @@ pub fn get_branch_last_git_hash(branch: &str) -> anyhow::Result<String> {
 }
 
 pub fn restore_git_state(prev: &GitInfo) -> anyhow::Result<()> {
-    let curr = git_info::get();
+    let curr = git_info2::get();
     if prev.head.last_commit_hash != curr.head.last_commit_hash {
         let checkout_target = if let Some(branch) = prev.current_branch.as_ref() {
             let hash = get_branch_last_git_hash(branch)?;

@@ -124,7 +124,7 @@ impl<'a> PreBenchmarkingChecker<'a> {
     }
 
     fn check_dirty_git_worktree(&mut self) -> anyhow::Result<()> {
-        let git_info = git_info::get();
+        let git_info = git_info2::get();
         let Some(dirty) = git_info.dirty else {
             anyhow::bail!("No git repo found");
         };
