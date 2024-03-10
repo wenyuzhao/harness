@@ -2,9 +2,8 @@ use clap::{Parser, Subcommand};
 use colored::Colorize;
 use once_cell::sync::Lazy;
 
-#[macro_use]
-mod utils;
 mod commands;
+mod utils;
 
 pub mod configs;
 
