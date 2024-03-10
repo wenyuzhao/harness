@@ -16,8 +16,8 @@ pub struct BenchArgs {
     #[arg(short = 'n', long, default_value = "1")]
     /// Number of iterations to run
     pub iterations: usize,
-    /// Comma-separated probe names
-    #[arg(long, default_value = "")]
+    /// Enabled probes and their configurations, as a json string.
+    #[arg(long, default_value = "{}")]
     pub probes: String,
     #[arg(long)]
     #[doc(hidden)]
@@ -72,7 +72,7 @@ impl<'a> Drop for BenchTimer<'a> {
             *state = BencherState::AfterTiming;
         }
         let elapsed = self.start_time.elapsed();
-        self.bencher.harness_end();
+        self.bencher.timing_end();
         let mut lock = self.bencher.elapsed.lock().unwrap();
         assert!(lock.is_none(), "More than one benchmark timer detected");
         *lock = Some(elapsed);
@@ -88,6 +88,7 @@ enum BencherState {
 
 /// A handle to the benchmark runner
 pub struct Bencher {
+    bench: String,
     current_iteration: usize,
     max_iterations: usize,
     elapsed: Mutex<Option<Duration>>,
@@ -97,8 +98,9 @@ pub struct Bencher {
 }
 
 impl Bencher {
-    fn new(max_iterations: usize) -> Self {
+    fn new(bench: String, max_iterations: usize) -> Self {
         Self {
+            bench,
             current_iteration: 0,
             max_iterations,
             elapsed: Mutex::new(None),
@@ -115,27 +117,31 @@ impl Bencher {
         // Erase scratch directory
         let scratch_dir = &*crate::utils::HARNESS_BENCH_SCRATCH_DIR;
         if scratch_dir.exists() {
-            std::fs::remove_dir_all(&scratch_dir).unwrap();
+            std::fs::remove_dir_all(scratch_dir).unwrap();
         }
-        std::fs::create_dir_all(&scratch_dir).unwrap();
+        std::fs::create_dir_all(scratch_dir).unwrap();
     }
 
     fn iter_end(&mut self) {
         assert_eq!(*self.state.lock().unwrap(), BencherState::AfterTiming);
     }
 
-    fn harness_begin(&self) {
-        if self.is_timing_iteration() {
-            let mut probes = self.probes.borrow_mut();
-            probes.harness_begin();
-        }
+    fn timing_begin(&self) {
+        let mut probes = self.probes.borrow_mut();
+        probes.begin(
+            &self.bench,
+            self.current_iteration,
+            self.is_timing_iteration(),
+        )
     }
 
-    fn harness_end(&self) {
-        if self.is_timing_iteration() {
-            let mut probes = self.probes.borrow_mut();
-            probes.harness_end();
-        }
+    fn timing_end(&self) {
+        let mut probes = self.probes.borrow_mut();
+        probes.end(
+            &self.bench,
+            self.current_iteration,
+            self.is_timing_iteration(),
+        )
     }
 
     /// Returns true if this is the last iteration
@@ -175,7 +181,7 @@ impl Bencher {
             assert_eq!(*state, BencherState::BeforeTiming);
             *state = BencherState::Timing;
         }
-        self.harness_begin();
+        self.timing_begin();
         BenchTimer {
             start_time: Instant::now(),
             bencher: self,
@@ -222,7 +228,7 @@ impl Bencher {
 
 pub struct SingleBenchmarkRunner {
     args: BenchArgs,
-    name: String,
+    bench_name: String,
     crate_name: String,
     bencher: Bencher,
     benchmark: fn(&Bencher),
@@ -235,7 +241,7 @@ impl SingleBenchmarkRunner {
         let args = BenchArgs::parse();
         let fname = std::path::PathBuf::from(fname);
         let name = fname.file_stem().unwrap().to_str().unwrap().to_owned();
-        let name = if let Some(n) = args.overwrite_benchmark_name.as_ref() {
+        let bench_name = if let Some(n) = args.overwrite_benchmark_name.as_ref() {
             n.clone()
         } else {
             name
@@ -247,9 +253,9 @@ impl SingleBenchmarkRunner {
         };
         Self {
             args: BenchArgs::parse(),
-            name,
+            bench_name: bench_name.clone(),
             crate_name,
-            bencher: Bencher::new(if is_single_shot { 1 } else { args.iterations }),
+            bencher: Bencher::new(bench_name, if is_single_shot { 1 } else { args.iterations }),
             benchmark,
             is_single_shot,
         }
@@ -279,19 +285,21 @@ impl SingleBenchmarkRunner {
             };
             eprintln!(
                 "===== {} {} starting {}=====",
-                self.crate_name, self.name, start_label
+                self.crate_name, self.bench_name, start_label
             );
             let elapsed = self.run_once_impl(i);
             eprintln!(
                 "===== {} {} {} in {:.1} msec =====",
-                self.crate_name, self.name, end_label, elapsed
+                self.crate_name, self.bench_name, end_label, elapsed
             );
         }
     }
 
     #[doc(hidden)]
     pub fn run(&mut self) -> anyhow::Result<()> {
+        // Initialize probes
         self.bencher.probes.borrow_mut().init(&self.args.probes);
+        // Run the benchmark
         let iterations = if self.is_single_shot {
             eprintln!("Harness: Single-shot run.");
             1
@@ -299,13 +307,16 @@ impl SingleBenchmarkRunner {
             self.args.iterations
         };
         self.run_iterative(iterations);
+        // Dump counters
         self.bencher.probes.borrow().dump_counters(
-            &self.name,
+            &self.bench_name,
             self.args.output_csv.as_ref(),
             self.args.current_invocation,
             self.args.current_build.as_ref(),
             &self.bencher.extra_stats.lock().unwrap(),
         );
+        // Destroy probes
+        self.bencher.probes.borrow_mut().deinit();
         Ok(())
     }
 }

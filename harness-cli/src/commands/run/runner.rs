@@ -10,10 +10,7 @@ use cargo_metadata::MetadataCommand;
 use colored::Colorize;
 
 use crate::{
-    configs::{
-        harness::{BuildConfig, Profile},
-        run_info::RunInfo,
-    },
+    configs::{harness::BuildConfig, run_info::RunInfo},
     print_md, utils,
 };
 
@@ -131,11 +128,14 @@ impl<'a> BenchRunner<'a> {
         Ok(())
     }
 
-    /// Run one benchmark with one build, for N iterations.
-    pub fn test_run(&self, bench: &str, build_name: &str) -> anyhow::Result<()> {
-        self.setup_env_before_benchmarking()?;
-        self.setup_before_invocation()?;
-        let build = self.run.profile.builds.get(build_name).unwrap();
+    fn get_command(
+        &self,
+        bench: &str,
+        build_name: &str,
+        build: &BuildConfig,
+        invocation: usize,
+        log_dir: Option<&Path>,
+    ) -> anyhow::Result<(Command, HashMap<String, String>)> {
         let mut cmd = Command::new("cargo");
         cmd.args(["bench", "--bench", bench])
             .arg("--features")
@@ -152,17 +152,30 @@ impl<'a> BenchRunner<'a> {
             .arg("--overwrite-benchmark-name")
             .arg(bench)
             .arg("--current-invocation")
-            .arg("0")
+            .arg(format!("{invocation}"))
             .arg("--current-build")
             .arg(build_name);
+        if let Some(log_dir) = log_dir {
+            cmd.arg("--output-csv").arg(log_dir.join("results.csv"));
+        }
         if !self.run.profile.probes.is_empty() {
-            cmd.args(["--probes".to_owned(), self.run.profile.probes.join(",")]);
+            let probes_json_str = serde_json::to_string(&self.run.profile.probes)?;
+            cmd.args(["--probes".to_owned(), probes_json_str]);
         }
         let mut envs = self.run.profile.env.clone();
         for (k, v) in &build.env {
             envs.insert(k.clone(), v.clone());
         }
         cmd.envs(&envs);
+        Ok((cmd, envs))
+    }
+
+    /// Run one benchmark with one build, for N iterations.
+    pub fn test_run(&self, bench: &str, build_name: &str) -> anyhow::Result<()> {
+        self.setup_env_before_benchmarking()?;
+        self.setup_before_invocation()?;
+        let build = self.run.profile.builds.get(build_name).unwrap();
+        let (mut cmd, _) = self.get_command(bench, build_name, build, 0, None)?;
         if cmd.status()?.success() {
             Ok(())
         } else {
@@ -177,7 +190,6 @@ impl<'a> BenchRunner<'a> {
     /// Run one benchmark with one build, for N iterations.
     fn run_one(
         &self,
-        profile: &Profile,
         build_name: &str,
         build: &BuildConfig,
         bench: &str,
@@ -197,37 +209,9 @@ impl<'a> BenchRunner<'a> {
             .open(log_file)?;
         let errors = outputs.try_clone()?;
         let mut outputs2 = outputs.try_clone()?;
-        let mut cmd = Command::new("cargo");
-        cmd.stdout(outputs)
-            .stderr(errors)
-            .args(["bench", "--bench", bench])
-            .arg("--features")
-            .arg(build.features.join(" "))
-            .args(if !build.default_features {
-                &["--no-default-features"] as &[&str]
-            } else {
-                &[] as &[&str]
-            })
-            .args(["--", "-n"])
-            .arg(format!("{}", self.run.profile.iterations))
-            .arg("--overwrite-crate-name")
-            .arg(&self.run.crate_info.name)
-            .arg("--overwrite-benchmark-name")
-            .arg(bench)
-            .arg("--current-invocation")
-            .arg(format!("{invocation}"))
-            .arg("--output-csv")
-            .arg(log_dir.join("results.csv"))
-            .arg("--current-build")
-            .arg(build_name);
-        if !profile.probes.is_empty() {
-            cmd.args(["--probes".to_owned(), profile.probes.join(",")]);
-        }
-        let mut envs = profile.env.clone();
-        for (k, v) in &build.env {
-            envs.insert(k.clone(), v.clone());
-        }
-        cmd.envs(&envs);
+        let (mut cmd, envs) =
+            self.get_command(bench, build_name, build, invocation, Some(log_dir))?;
+        cmd.stdout(outputs).stderr(errors);
         self.dump_metadata_for_single_invocation(&mut outputs2, &cmd, build, &envs)?;
         let out = cmd.status()?;
         writeln!(outputs2, "\n\n\n")?;
@@ -248,7 +232,8 @@ impl<'a> BenchRunner<'a> {
             "* logs: `{}`",
             self.log_dir.as_ref().unwrap().to_str().unwrap()
         );
-        print_md!("* probes: `{}`", self.run.profile.probes.join(", "));
+        let probe_names = self.run.profile.probes.keys().cloned().collect::<Vec<_>>();
+        print_md!("* probes: `{}`", probe_names.join(", "));
         print_md!("* iterations: `{}`", self.run.profile.iterations);
         let i = self.run.profile.invocations;
         let w = (i - 1).to_string().len();
@@ -371,7 +356,7 @@ impl<'a> BenchRunner<'a> {
                 for (build_index, build_name) in self.build_names.iter().enumerate() {
                     // Start of a build
                     let build = &self.run.profile.builds[build_name];
-                    match self.run_one(&self.run.profile, build_name, build, bench, log_dir, i) {
+                    match self.run_one(build_name, build, bench, log_dir, i) {
                         Ok(_) => self.print_build_label(build_index),
                         Err(e) => self.report_error_and_print_cross(bench, build_name, e)?,
                     }
@@ -391,7 +376,7 @@ impl<'a> BenchRunner<'a> {
                 for (build_index, build_name) in self.build_names.iter().enumerate() {
                     // Start of a build
                     let build = &self.run.profile.builds[build_name];
-                    match self.run_one(&self.run.profile, build_name, build, bench, log_dir, i) {
+                    match self.run_one(build_name, build, bench, log_dir, i) {
                         Ok(_) => self.print_build_label(build_index),
                         Err(e) => self.report_error_and_print_cross(bench, build_name, e)?,
                     }
@@ -410,7 +395,7 @@ impl<'a> BenchRunner<'a> {
                 self.print_build_label(build_index);
                 for i in 0..self.run.profile.invocations {
                     let build = &self.run.profile.builds[build_name];
-                    match self.run_one(&self.run.profile, build_name, build, bench, log_dir, i) {
+                    match self.run_one(build_name, build, bench, log_dir, i) {
                         Ok(_) => self.print_invoc_label(i, false),
                         Err(e) => self.report_error_and_print_cross(bench, build_name, e)?,
                     }

@@ -1,7 +1,7 @@
 #[cfg(target_os = "linux")]
 use std::collections::HashMap;
 
-use harness::probe::{Probe, ProbeManager};
+use harness::probe::{Probe, ProbeArgs, ProbeManager};
 
 #[harness::probe]
 #[derive(Default)]
@@ -20,11 +20,10 @@ impl Probe for PerfEventProbe {}
 #[cfg(target_os = "linux")]
 impl Probe for PerfEventProbe {
     /// Initialize the probe before benchmarking.
-    fn init(&mut self) {
-        self.perfmon
-            .initialize()
-            .expect("Perfmon failed to initialize");
-        let events = std::env::var("PERF_EVENTS").unwrap_or_default();
+    fn init(&mut self, args: ProbeArgs) {
+        self.perfmon.initialize().expect("libpfm init failed.");
+        let events = args.get::<String>("events").unwrap_or_default();
+        let inherit = args.get::<bool>("inherit").unwrap_or_default();
         self.event_names = events
             .split(',')
             .map(|s| s.trim())
@@ -34,7 +33,7 @@ impl Probe for PerfEventProbe {
         self.events = self
             .event_names
             .iter()
-            .map(|s| pfm::PerfEvent::new(s, true).unwrap())
+            .map(|s| pfm::PerfEvent::new(s, inherit).unwrap())
             .collect();
         for e in &mut self.events {
             e.open(0, -1).unwrap();
@@ -42,22 +41,26 @@ impl Probe for PerfEventProbe {
     }
 
     /// Prepare recording at the start of the timing iteration.
-    fn harness_begin(&mut self) {
-        for e in &mut self.events {
-            e.reset().expect("Failed to reset perf event");
-            e.enable().expect("Failed to enable perf event");
+    fn begin(&mut self, _benchmark: &str, _iteration: usize, warmup: bool) {
+        if !warmup {
+            for e in &mut self.events {
+                e.reset().expect("Failed to reset perf event");
+                e.enable().expect("Failed to enable perf event");
+            }
         }
     }
 
     /// Finish timing iteration. Disable recording.
-    fn harness_end(&mut self) {
-        for e in &mut self.events {
-            e.disable().expect("Failed to disable perf event");
+    fn end(&mut self, _benchmark: &str, _iteration: usize, warmup: bool) {
+        if !warmup {
+            for e in &mut self.events {
+                e.disable().expect("Failed to disable perf event");
+            }
         }
     }
 
     /// Report data after the timing iteration.
-    fn report_values(&mut self) -> HashMap<String, f32> {
+    fn report(&mut self) -> HashMap<String, f32> {
         let mut values = HashMap::new();
         for (i, e) in self.events.iter().enumerate() {
             let v = e.read().unwrap().value as f32;

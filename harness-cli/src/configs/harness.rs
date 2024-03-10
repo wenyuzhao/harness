@@ -38,6 +38,7 @@
 use std::{collections::HashMap, path::PathBuf};
 
 use serde::{Deserialize, Serialize};
+use toml::Table;
 
 /// The information we care in a Cargo.toml
 #[derive(Deserialize)]
@@ -166,9 +167,9 @@ fn default_invocations() -> usize {
 /// The `default` profile will be used by the runner by default.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Profile {
-    /// Enabled probes
+    /// Enabled probes and their configurations. The configuration must be a TOML table (e.g. `example_probe = { param = "42" }`).
     #[serde(default)]
-    pub probes: Vec<String>,
+    pub probes: HashMap<String, Table>,
     /// Environment variables to set to all builds and benchmarks
     #[serde(default)]
     pub env: HashMap<String, String>,
@@ -188,7 +189,7 @@ pub struct Profile {
 impl Default for Profile {
     fn default() -> Self {
         Self {
-            probes: Vec::new(),
+            probes: HashMap::new(),
             env: HashMap::new(),
             builds: HashMap::new(),
             iterations: default_iterations(),
