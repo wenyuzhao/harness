@@ -9,7 +9,7 @@ publish = false
 [dependencies]
 
 [dev-dependencies]
-harness = { path = "../../harness" }
+harness = { workspace = true }
 
 [[bench]]
 name = "foo"

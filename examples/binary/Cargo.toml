@@ -7,7 +7,7 @@ publish = false
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-harness = { path = "../../harness" }
+harness = { workspace = true }
 
 [[bench]]
 name = "xml"

@@ -17,7 +17,7 @@ license.workspace = true
 crate-type = ["dylib"]
 
 [dependencies]
-harness = { path = "../../harness" }
+harness = { workspace = true }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 pfm = "0.1.0"

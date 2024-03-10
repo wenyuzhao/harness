@@ -25,4 +25,4 @@ quote = "1.0.33"
 darling = "0.20.8"
 
 [dev-dependencies]
-harness = { path = ".." }
+harness = { workspace = true }
