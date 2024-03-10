@@ -64,8 +64,8 @@ After all the $I$ invocations are finished, running `cargo harness report` will 
 
 **`harness` supports collecting and reporting extra performance data other than execution time**, by enabling the following probes:
 
-* **harness-probe-perf**: Collect perf-event values for the timing iteration.
-* **harness-probe-ebpf (WIP)**: Extra performance data collected by eBPF programs.
+* `harness-probe-perf`: Collect perf-event values for the timing iteration.
+* `harness-probe-ebpf (WIP)`: Extra performance data collected by eBPF programs.
 
 ## System checks
 
