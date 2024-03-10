@@ -1,8 +1,19 @@
 [package]
 name = "harness-cli"
 version = "0.0.1"
-edition = "2021"
 description = "Precise and reproducible micro benchmarking"
+repository = "https://github.com/wenyuzhao/harness"
+homepage = "https://github.com/wenyuzhao/harness"
+documentation = "https://docs.rs/harness-cli"
+categories = [
+    "development-tools::profiling",
+    "development-tools::cargo-plugins",
+    "command-line-utilities",
+]
+keywords = ["benchmark", "performance", "measure", "instrument"]
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

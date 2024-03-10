@@ -1,7 +1,17 @@
 [package]
 name = "harness-macros"
 version = "0.0.1"
-edition = "2021"
+repository = "https://github.com/wenyuzhao/harness"
+homepage = "https://github.com/wenyuzhao/harness"
+documentation = "https://docs.rs/harness-macros"
+categories = [
+    "development-tools::profiling",
+    "development-tools::procedural-macro-helpers",
+]
+keywords = ["benchmark", "performance", "measure", "instrument"]
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
 
 [lib]
 proc-macro = true

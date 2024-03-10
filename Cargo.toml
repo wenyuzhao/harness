@@ -12,3 +12,8 @@ members = [
     "examples/simple",
     "examples/binary",
 ]
+
+[workspace.package]
+edition = "2021"
+authors = ["Wenyu Zhao <wenyuzhaox@gmail.com>"]
+license = "MIT"
