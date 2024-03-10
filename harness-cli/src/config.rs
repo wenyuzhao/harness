@@ -8,7 +8,7 @@ use crate::utils;
 /// The information we care in a Cargo.toml
 #[derive(Deserialize)]
 pub(crate) struct CargoConfig {
-    /// The packege section of the Cargo.toml
+    /// The package section of the Cargo.toml
     package: CargoConfigPackage,
     /// The bench list of the Cargo.toml
     #[serde(default)]
@@ -175,7 +175,7 @@ impl Default for BuildConfig {
     }
 }
 
-/// The metdata of the crate
+/// The metadata of the crate
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct CrateInfo {
     /// Crate name
@@ -186,7 +186,7 @@ pub struct CrateInfo {
     pub benches: Vec<String>,
 }
 
-/// The evaluation run metadata. This will be colelcted before eaech evaluation and dumped to the log directory.
+/// The evaluation run metadata. This will be collected before each evaluation and dumped to the log directory.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct RunInfo {
     /// Benchmark run id

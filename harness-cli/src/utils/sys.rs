@@ -39,11 +39,11 @@ fn get_scaling_governor() -> anyhow::Result<Vec<String>> {
 }
 
 fn get_rustc_version() -> Option<String> {
-    let vmeta = rustc_version::version_meta().ok()?;
+    let v = rustc_version::version_meta().ok()?;
     Some(format!(
         "{} ({})",
-        vmeta.semver,
-        format!("{:?}", vmeta.channel).to_lowercase()
+        v.semver,
+        format!("{:?}", v.channel).to_lowercase()
     ))
 }
 

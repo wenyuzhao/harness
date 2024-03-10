@@ -358,7 +358,7 @@ impl TextTable {
             let mid = format!("| {} |", mid);
             rows.push(mid);
         }
-        // Buttom row
+        // Bottom row
         if self.tty {
             let cells = col_widths.iter().map(|w| pad('-', *w)).collect::<Vec<_>>();
             let bottom_row = format!("| {} |", cells.join(" | "));

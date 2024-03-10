@@ -26,7 +26,7 @@ use crate::utils;
 
 use super::harness::Profile;
 
-/// The evaluation run metadata. This will be colelcted before eaech evaluation and dumped to the log directory.
+/// The evaluation run metadata. This will be collected before each evaluation and dumped to the log directory.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct RunInfo {
     /// Benchmark run id
@@ -83,7 +83,7 @@ pub struct CrateInfo {
     pub benches: Vec<String>,
 }
 
-/// The system information, including the hareware specs, the OS info, and the environment variables.
+/// The system information, including the hardware specs, the OS info, and the environment variables.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SystemInfo {
     /// Host name

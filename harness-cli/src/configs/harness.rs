@@ -42,7 +42,7 @@ use toml::Table;
 /// The information we care in a Cargo.toml
 #[derive(Deserialize)]
 pub(crate) struct CargoConfig {
-    /// The packege section of the Cargo.toml
+    /// The package section of the Cargo.toml
     package: CargoConfigPackage,
     /// The bench list of the Cargo.toml
     #[serde(default)]

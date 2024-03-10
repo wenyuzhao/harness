@@ -53,7 +53,7 @@ When running benchmarks in a complex environment, rather than on a dedicated hea
 
 Instead of blindly iterating a single benchmark multiple times and reporting the per-iteration time distribution, `harness` has a clear notion of _warmup_ and _timing_ iterations. By default, each invocation of $(P,B)$ will repeat the workload for $5$ iterations. The first $4$ iterations are used for warmup. Only the results from the last _timing_ iteration are reported.
 
-_Warmup_ / _timing_ separation can greatly reduce the noise due to the relatively unpredictable warmup oor boot phase. However, you can also choose to do single-iteration runs to cover the boot time and warmup cost.
+_Warmup_ / _timing_ separation can greatly reduce the noise due to the relatively unpredictable warmup or boot phase. However, you can also choose to do single-iteration runs to cover the boot time and warmup cost.
 
 ## Statistical runs and analysis
 
@@ -68,7 +68,7 @@ You can also use your own script to load the results and analyze them differentl
 In addition to report the running time, it's possible to optionally enable the following probes to collect extra performance data:
 
 * **harness-probe-perf**: Collect perf-event values for the timing iteration.
-* **harness-probe-ebpf (WIP)**: Extra performance data collcted by ebpf programs.
+* **harness-probe-ebpf (WIP)**: Extra performance data collected by ebpf programs.
 
 ## System checks
 
@@ -104,9 +104,9 @@ Any change to the system environments would affect reproducibility. So it's reco
 - [x] Runner
 - [x] Binary runner
 - [x] Result reporting
-- [x] Test runnner
+- [x] Test runner
 - [x] Scratch folder
-- [x] Default to compare HAED vs HEAD~1
+- [x] Default to compare HEAD vs HEAD~1
 - [x] Restore git states after benchmarking
 - [x] Comments for public api
 - [x] Documentation

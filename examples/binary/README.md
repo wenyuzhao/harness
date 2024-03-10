@@ -1,6 +1,6 @@
 # examples/binary
 
-This example shows how to use `harness` to benchmark any binary executables, nost limited to rust binarys.
+This example shows how to use `harness` to benchmark any binary executables, not limited to rust binaries.
 
 It compares two zip implementations: `zip` and `7z`, and use them to compress three different types of datasets: `xml`, `jpg` and `wav`.
 

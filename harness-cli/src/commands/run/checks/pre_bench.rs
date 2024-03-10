@@ -118,7 +118,7 @@ impl<'a, 'b> ReproducibilityChecker<'a, 'b> {
         }
         if old.commit.ends_with("-dirty") {
             self.warn(format!(
-                "Profile commit {} is dirty. Uncommited changes may affect reproducibility.",
+                "Profile commit {} is dirty. Uncommitted changes may affect reproducibility.",
                 old.commit.italic().on_custom_color(*BG)
             ));
         }
