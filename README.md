@@ -78,7 +78,7 @@ In addition to reporting the running time, `harness` supports collecting extra p
 
 ## Tracked evaluation configs
 
-`harness` refuses to support casual benchmarking. Each evaluation is enforced to be properly tracked by Git, including all the benchmark configurations and the revisions of all the benchmarks and benchmarked programs. Verifying the correctness of any evaluation, or re-running an evaluation from years ago, can be done by simply tracking back the git history.
+**`harness` refuses to support casual benchmarking.** Each evaluation is enforced to be properly tracked by Git, including all the benchmark configurations and the revisions of all the benchmarks and benchmarked programs. Verifying the correctness of any evaluation, or re-running an evaluation from years ago, can be done by simply tracking back the git history.
 
 ## Tracked program revisions
 
