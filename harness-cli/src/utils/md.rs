@@ -4,7 +4,7 @@ use polars::prelude::*;
 
 use crate::commands::report::data::PerMetricSummary;
 
-pub fn print_md(s: impl AsRef<str>) {
+fn print_md(s: impl AsRef<str>) {
     let mut printer = MarkdownPrinter::new();
     printer.add(s);
     printer.dump();
