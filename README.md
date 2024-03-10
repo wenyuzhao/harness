@@ -11,7 +11,7 @@
   * [System checks](#system-checks)
 * [**_<ins>Reproducible</ins>_** Evaluation](#reproducible-evaluation)
   * [Git-tracked evaluation configs](#git-tracked-evaluation-configs)
-  * [Tracked system environments](#tracked-system-environments)
+  * [System environment verification](#systen-environment-verification)
 * [SIGPLAN Empirical Evaluation Checklist](https://github.com/SIGPLAN/empirical-evaluation/raw/master/checklist/checklist.pdf)
 
 [![crates.io](https://img.shields.io/crates/v/harness?style=flat-square&logo=rust)](https://crates.io/crates/harness)
@@ -86,7 +86,7 @@ Evaluation configs are forced to be tracked by Git alongside your Rust crate. `h
 
 This ensures that each different evaluation alongside the benchmarked code is being tracked properly, without any accidental changes. Hence, it becomes possible to check the correctness or any details of any historical evaluations, by simply tracking back the git history.
 
-## Tracked system environments
+## System environment verification
 
 `harness` assigns each individual evaluation a unique `RUNID` and generates a evaluation summary at `target/harness/logs/<RUNID>/config.toml`. The following environmental or evaluation info is tracked in the summary config file:
 
@@ -97,7 +97,7 @@ This ensures that each different evaluation alongside the benchmarked code is be
 
 Reproducing a previous evaluation is as simple as running `cargo harness run --config <RUNID>`. `harness` automatically checks out the corresponding commits to ensure the codebase is exactly at the same state as the time `RUNID` was generated.
 
-Any change to the system environments would affect reproducibility. So it's recommended to keep the same environment variables and the same OS / CPU / Memory / Cache config _as much as possible_. `harness` automatically compares the current system info against the recorded ones and warns the user for any differences.
+Any change to the system environments would affect reproducibility. So it's recommended to keep the same environment variables and the same OS / CPU / Memory / Cache config _as much as possible_. `harness` automatically verifies the current system info against the recorded ones and warns for any differences.
 
 # TODO:
 
