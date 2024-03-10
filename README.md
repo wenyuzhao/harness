@@ -12,7 +12,7 @@
 * [**_<ins>Reproducible</ins>_** Evaluation](#reproducible-evaluation)
   * [Tracked evaluation configs](#tracked-evaluation-configs)
   * [Tracked program revisions](#tracked-program-revisions)
-  * [System environment verification](#systen-environment-verification)
+  * [System environment verification](#system-environment-verification)
 * [SIGPLAN Empirical Evaluation Checklist](https://github.com/SIGPLAN/empirical-evaluation/raw/master/checklist/checklist.pdf)
 
 [![crates.io](https://img.shields.io/crates/v/harness?style=flat-square&logo=rust)](https://crates.io/crates/harness)
