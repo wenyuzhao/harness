@@ -29,6 +29,8 @@ struct BenchMacroArgs {
 /// # Example
 ///
 /// ```rust
+/// use harness::{bench, Bencher, black_box};
+///
 /// const LEN: usize = 10000000;
 ///
 /// #[bench]
@@ -52,6 +54,8 @@ struct BenchMacroArgs {
 /// `startup` is called ones before all the iterations, and `teardown` is called once after all the iterations.
 ///
 /// ```rust
+/// use harness::{bench, Bencher, black_box};
+///
 /// fn example_startup() {
 ///     // TODO: Pre-benchmark initialization. e.g. Download data for the benchmark.
 /// }
