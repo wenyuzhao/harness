@@ -32,7 +32,7 @@ Please see more [examples](/examples) on how to configure and use `harness`. The
 
 ## Interleaved runs
 
-**`harness` avoids running the same piece of benchmarking code multiple times in a loop**, unlike what most existing Rust benchmarking tools would do.
+**`harness` avoids running the same benchmark multiple times in a loop**, unlike what most existing Rust benchmarking tools would do.
 
 For a evaluation, given benchmark programs $P_1..P_p$, builds $B_1..B_b$, and we run each $(P, B)$ pair for $I$ invocations, `harness` will use the following run order, row by row:
 
