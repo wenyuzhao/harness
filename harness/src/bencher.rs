@@ -156,6 +156,8 @@ impl Bencher {
     /// # Example
     ///
     /// ```rust
+    /// use harness::{bench, Bencher, black_box};
+    ///
     /// const LEN: usize = 10000000;
     ///
     /// #[bench]
@@ -195,6 +197,8 @@ impl Bencher {
     /// # Example
     ///
     /// ```rust
+    /// use harness::{bench, Bencher, black_box};
+    ///
     /// const LEN: usize = 10000000;
     ///
     /// #[bench]
