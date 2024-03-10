@@ -131,7 +131,7 @@ impl Bencher {
         probes.begin(
             &self.bench,
             self.current_iteration,
-            self.is_timing_iteration(),
+            !self.is_timing_iteration(),
         )
     }
 
@@ -140,7 +140,7 @@ impl Bencher {
         probes.end(
             &self.bench,
             self.current_iteration,
-            self.is_timing_iteration(),
+            !self.is_timing_iteration(),
         )
     }
 
