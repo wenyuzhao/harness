@@ -1,4 +1,4 @@
-# harness
+# Harness
 
 **_<ins>Precise</ins>_** and **_<ins>reproducible</ins>_** benchmarking. Inspired by [running-ng](https://anupli.github.io/running-ng).
 
@@ -13,6 +13,10 @@
   * [Git-tracked evaluation configs](#git-tracked-evaluation-configs)
   * [Tracked system environments](#tracked-system-environments)
 * [SIGPLAN Empirical Evaluation Checklist](https://github.com/SIGPLAN/empirical-evaluation/raw/master/checklist/checklist.pdf)
+
+[![crates.io](https://img.shields.io/crates/v/harness?style=flat-square&logo=rust)](https://crates.io/crates/harness)
+[![docs](https://img.shields.io/docsrs/harness/latest?style=flat-square&logo=docs.rs)](https://docs.rs/harness)
+[![workflow-status](https://img.shields.io/github/actions/workflow/status/wenyuzhao/harness/rust.yml?style=flat-square&logo=github&label=checks)](https://github.com/wenyuzhao/harness/actions/workflows/rust.yml)
 
 # Getting Started
 
