@@ -1,5 +1,5 @@
 [package]
-name = "harness-perf"
+name = "harness-probe-perf"
 version = "0.0.1"
 edition = "2021"
 description = "cargo-harness probe for preporting linux perf-event counter values"

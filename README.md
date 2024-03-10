@@ -63,8 +63,8 @@ You can also use your own script to load the results and analyze them differentl
 
 In addition to report the running time, it's possible to optionally enable the following probes to collect extra performance data:
 
-* **harness-perf**: Collect perf-event values for the timing iteration.
-* **harness-ebpf (WIP)**: Extra performance data collcted by ebpf programs.
+* **harness-probe-perf**: Collect perf-event values for the timing iteration.
+* **harness-probe-ebpf (WIP)**: Extra performance data collcted by ebpf programs.
 
 ## System checks
 

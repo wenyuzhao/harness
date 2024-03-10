@@ -16,10 +16,9 @@
 //! [package.metadata.harness.profiles.default]
 //! iterations = 3 # Optional. Default to 5
 //! invocations = 40 # Optional. Default to 10
-//! probes = ["harness-perf"] # Optional. Default to an empty list
 //! # Additional environment variables to set for all builds and benchmarks
 //! # Optional. Default to no additional environment variables
-//! env = { PERF_EVENTS = "PERF_COUNT_HW_CPU_CYCLES,PERF_COUNT_HW_INSTRUCTIONS" }
+//! env = { BAR = "BAZ" }
 //!
 //! # The list of builds to evaluate.
 //! # If not specified, two builds `HEAD` and `HEAD~1` will be evaluated by default.
