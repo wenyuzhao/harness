@@ -10,7 +10,8 @@
   * [Probes](#probes)
   * [System checks](#system-checks)
 * [**_<ins>Reproducible</ins>_** Evaluation](#reproducible-evaluation)
-  * [Git-tracked evaluation configs](#git-tracked-evaluation-configs)
+  * [Tracked evaluation configs](#tracked-evaluation-configs)
+  * [Tracked program revisions](#tracked-program-revisions)
   * [System environment verification](#systen-environment-verification)
 * [SIGPLAN Empirical Evaluation Checklist](https://github.com/SIGPLAN/empirical-evaluation/raw/master/checklist/checklist.pdf)
 
@@ -68,30 +69,32 @@ In addition to reporting the running time, `harness` supports collecting extra p
 
 ## System checks
 
-`harness` performs a series of strict checks to minimize system noise and ensure correctness. It refuses to start benchmarking if any of the following checks fail:
+`harness` performs a series of strict checks to minimize system noise. It refuses to start benchmarking if any of the following checks fail:
 
-* There are no uncommitted changes in the repo (mainly for correctness and reproducibility)
 * (*Linux-only*) Only one user is logged in
 * (*Linux-only*) All CPU scaling governors are set to `performance`
 
 # _<ins>Reproducible</ins>_ Evaluation
 
-## Git-tracked evaluation configs
+## Tracked evaluation configs
 
-Evaluation configs are forced to be tracked by Git alongside your Rust crate. `harness` enforces that all changes in the current git repo, including the evaluation config itself, must be committed prior to running the benchmark. Otherwise, it will refuse to run.
+`harness` refuses to support casual benchmarking. Each evaluation is enforced to be properly tracked by Git, including all the benchmark configurations and the revisions of all the benchmarks and benchmarked programs. Verifying the correctness of any evaluation, or re-running an evaluation from years ago, can be done by simply tracking back the git history.
 
-This ensures that each different evaluation alongside the benchmarked code is being tracked properly, without any accidental changes. Hence, it becomes possible to check the correctness or any details of any historical evaluations, by simply tracking back the git history.
+## Tracked program revisions
 
-## System environment verification
-
-`harness` assigns each individual evaluation a unique `RUNID` and generates a evaluation summary at `target/harness/logs/<RUNID>/config.toml`. The following environmental or evaluation info is tracked in the summary config file:
+`harness` assigns each individual evaluation a unique `RUNID` and generates an evaluation summary at `target/harness/logs/<RUNID>/config.toml`. `harness` uses this file to record the evaluation info for the current benchmark run, including:
 
 * Git commit of the evaluation config
 * Git commit, cargo features, and environment variables used for producing each evaluated build
-* All global environment variables at the time of the run
-* OS / CPU / Memory / Cache information used for the run
 
-Reproducing a previous evaluation is as simple as running `cargo harness run --config <RUNID>`. `harness` automatically checks out the corresponding commits to ensure the codebase is exactly at the same state as the time `RUNID` was generated.
+Reproducing a previous evaluation is as simple as running `cargo harness run --config <RUNID>`. `harness` automatically checks out the corresponding commits, sets up the recorded cargo features and environment variables to ensure the codebase and builds are exactly at the same state as when `RUNID` was generated.
+
+## System environment verification
+
+In the same `<RUNID>/config.toml` file, `harness` also records all the environmental info for every benchmark run, including but not limited to:
+
+* All global system environment variables at the time of the run
+* OS / CPU / Memory / Cache information used for the run
 
 Any change to the system environments would affect reproducibility. So it's recommended to keep the same environment variables and the same OS / CPU / Memory / Cache config _as much as possible_. `harness` automatically verifies the current system info against the recorded ones and warns for any differences.
 
