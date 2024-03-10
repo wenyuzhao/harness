@@ -43,36 +43,32 @@ $$I_I\ :\ [P_1B_1,\ P_1B_2,\ ..,\ P_1B_b],\ \ \ [P_2B_1,\ P_2B_2,\ ..,\ P_2B_b]\
 
 The meta-level idea is to **avoid running a single $(P,B)$ pair multiple times in a loop** (This is what most of the existing Rust bench tools would do!).
 
-During benchmarking, the machine environment can have fluctuations, e.g. CPU frequency suddenly scaled down, or a background process waking up to do some task. Interleaved runs will make sure those fluctuations do not only affect one build or one benchmark, but all the benchmarks and builds in a relatively fair way.
+Any machine can have performance fluctuations, e.g. CPU frequency suddenly scaled down, or a background process waking up to do some task. Interleaved runs will make sure fluctuations do not affect only one build or one benchmark, but all the benchmarks and builds in a relatively fair way.
 
-When running benchmarks in a complex environment, rather than on a dedicated headless server, you are very likely to see a difference in the results between the two run orders.
+When running in a complex environment, rather than on a dedicated headless server, you are very likely to see a difference in the results between the two run orders.
 
 **Note:** For the same reason, it's recommended to always have more than two different builds in each evaluation. Otherwise, there is no difference to running a single build in a loop.
 
 ## Warmup / timing phase separation
 
-Instead of blindly iterating a single benchmark multiple times and reporting the per-iteration time distribution, `harness` has a clear notion of _warmup_ and _timing_ iterations. By default, each invocation of $(P,B)$ will repeat the workload for $5$ iterations. The first $4$ iterations are used for warmup. Only the results from the last _timing_ iteration are reported.
-
-_Warmup_ / _timing_ separation can greatly reduce the noise due to the relatively unpredictable warmup or boot phase. However, you can also choose to do single-iteration runs to cover the boot time and warmup cost.
+Instead of blindly iterating a single benchmark multiple times/iterations and reporting the time distribution, `harness` has a clear notion of _warmup_ and _timing_ iterations. By default, each invocation of $(P,B)$ will repeat the workload for $5$ iterations. The first $4$ iterations are used for warmup. Only the results from the last _timing_ iteration are reported. This can greatly reduce the noise due to program warmup and precisely measure the peak performance. However, you can also choose to do single-iteration runs to cover the boot time and warmup cost.
 
 ## Statistical runs and analysis
 
-Similar to other benchmarking tools, `harness` runs each $(P,B)$ pair multiple times (multiple invocations). However, we use a fixed number of invocations for all $(P,B)$ pairs for easier reasoning purposes. Unless specified differently, each $(P,B)$ is run for 10 invocations by default.
+Similar to other bench tools, `harness` runs each $(P,B)$ pair multiple times (multiple invocations). However, we use a fixed number of invocations for all $(P,B)$ pairs for easier reasoning. Unless specified differently, each $(P,B)$ is run for 10 invocations by default.
 
-After all the $I$ invocations are finished, running `cargo harness report` will parse the results and report the min/max/mean/geomean for each performance value, as well as the 95% confidence interval per benchmark.
-
-You can also use your own script to load the results and analyze them differently. The performance values are stored in `target/harness/logs/<RUNID>/results.csv`.
+After all the $I$ invocations are finished, running `cargo harness report` will parse the results and report the min/max/mean/geomean for each performance value, as well as the 95% confidence interval per benchmark. You can also use your own script to load the results and analyze them differently. The performance values are stored in `target/harness/logs/<RUNID>/results.csv`.
 
 ## Probes
 
-In addition to report the running time, it's possible to optionally enable the following probes to collect extra performance data:
+In addition to reporting the running time, `harness` supports collecting extra performance data by enabling the following probes:
 
 * **harness-probe-perf**: Collect perf-event values for the timing iteration.
-* **harness-probe-ebpf (WIP)**: Extra performance data collected by ebpf programs.
+* **harness-probe-ebpf (WIP)**: Extra performance data collected by eBPF programs.
 
 ## System checks
 
-`harness` performs a series of strict checks to minimize benchmarking noise and ensure correctness. It refuses to start benchmarking if any of the following checks fail:
+`harness` performs a series of strict checks to minimize system noise and ensure correctness. It refuses to start benchmarking if any of the following checks fail:
 
 * There are no uncommitted changes in the repo (mainly for correctness and reproducibility)
 * (*Linux-only*) Only one user is logged in
