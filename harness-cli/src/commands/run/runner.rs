@@ -58,8 +58,8 @@ impl<'a> BenchRunner<'a> {
             "HARNESS_BENCH_SCRATCH_DIR",
             self.scratch_dir.to_str().unwrap(),
         );
-        if let Some(logdir) = &self.log_dir {
-            std::env::set_var("HARNESS_BENCH_LOG_DIR", logdir.to_str().unwrap());
+        if let Some(log_dir) = &self.log_dir {
+            std::env::set_var("HARNESS_BENCH_LOG_DIR", log_dir.to_str().unwrap());
         }
         std::env::set_var("HARNESS_BENCH_RUNID", self.run.runid.as_str());
         std::fs::create_dir_all(&self.scratch_dir)?;
@@ -135,32 +135,40 @@ impl<'a> BenchRunner<'a> {
         build: &BuildConfig,
         invocation: usize,
         log_dir: Option<&Path>,
+        build_only_and_include_all_benches: bool, // ignores the first `bench` parameter
     ) -> anyhow::Result<(Command, HashMap<String, String>)> {
         let mut cmd = Command::new("cargo");
-        cmd.args(["bench", "--bench", bench])
+        cmd.arg("bench")
             .arg("--features")
             .arg(build.features.join(" "))
             .args(if !build.default_features {
                 &["--no-default-features"] as &[&str]
             } else {
                 &[] as &[&str]
-            })
-            .args(["--", "-n"])
-            .arg(format!("{}", self.run.profile.iterations))
-            .arg("--overwrite-crate-name")
-            .arg(&self.run.crate_info.name)
-            .arg("--overwrite-benchmark-name")
-            .arg(bench)
-            .arg("--current-invocation")
-            .arg(format!("{invocation}"))
-            .arg("--current-build")
-            .arg(build_name);
-        if let Some(log_dir) = log_dir {
-            cmd.arg("--output-csv").arg(log_dir.join("results.csv"));
-        }
-        if !self.run.profile.probes.is_empty() {
-            let probes_json_str = serde_json::to_string(&self.run.profile.probes)?;
-            cmd.args(["--probes".to_owned(), probes_json_str]);
+            });
+        if build_only_and_include_all_benches {
+            cmd.arg("--no-run");
+        } else {
+            // pass bench name
+            cmd.args(["--bench", bench]);
+            // run args
+            cmd.args(["--", "-n"])
+                .arg(format!("{}", self.run.profile.iterations))
+                .arg("--overwrite-crate-name")
+                .arg(&self.run.crate_info.name)
+                .arg("--overwrite-benchmark-name")
+                .arg(bench)
+                .arg("--current-invocation")
+                .arg(format!("{invocation}"))
+                .arg("--current-build")
+                .arg(build_name);
+            if let Some(log_dir) = log_dir {
+                cmd.arg("--output-csv").arg(log_dir.join("results.csv"));
+            }
+            if !self.run.profile.probes.is_empty() {
+                let probes_json_str = serde_json::to_string(&self.run.profile.probes)?;
+                cmd.args(["--probes".to_owned(), probes_json_str]);
+            }
         }
         let mut envs = self.run.profile.env.clone();
         for (k, v) in &build.env {
@@ -170,12 +178,33 @@ impl<'a> BenchRunner<'a> {
         Ok((cmd, envs))
     }
 
+    fn test_build(&self) -> anyhow::Result<()> {
+        for build_name in &self.build_names {
+            let build = &self.run.profile.builds[build_name];
+            if let Some(commit) = &build.commit {
+                utils::git::checkout(commit)?;
+            }
+            let (mut cmd, _envs) = self.get_command("", build_name, build, 0, None, true)?;
+            let out = cmd
+                .output()
+                .map_err(|e| anyhow::anyhow!("Failed to build `{}`: {}", build_name, e))?;
+            if !out.status.success() {
+                anyhow::bail!(
+                    "Failed to build `{}`: {}",
+                    build_name,
+                    String::from_utf8_lossy(&out.stderr)
+                );
+            }
+        }
+        Ok(())
+    }
+
     /// Run one benchmark with one build, for N iterations.
     pub fn test_run(&self, bench: &str, build_name: &str) -> anyhow::Result<()> {
         self.setup_env_before_benchmarking()?;
         self.setup_before_invocation()?;
         let build = self.run.profile.builds.get(build_name).unwrap();
-        let (mut cmd, _) = self.get_command(bench, build_name, build, 0, None)?;
+        let (mut cmd, _) = self.get_command(bench, build_name, build, 0, None, false)?;
         if cmd.status()?.success() {
             Ok(())
         } else {
@@ -210,7 +239,7 @@ impl<'a> BenchRunner<'a> {
         let errors = outputs.try_clone()?;
         let mut outputs2 = outputs.try_clone()?;
         let (mut cmd, envs) =
-            self.get_command(bench, build_name, build, invocation, Some(log_dir))?;
+            self.get_command(bench, build_name, build, invocation, Some(log_dir), false)?;
         cmd.stdout(outputs).stderr(errors);
         self.dump_metadata_for_single_invocation(&mut outputs2, &cmd, build, &envs)?;
         let out = cmd.status()?;
@@ -434,6 +463,7 @@ impl<'a> BenchRunner<'a> {
         self.collect_benches()?;
         self.print_before_run();
         self.setup_env_before_benchmarking()?;
+        self.test_build()?;
         if cfg!(feature = "run_order_bench_inv_build") {
             self.run_bench_inv_build(log_dir)?;
         } else if cfg!(feature = "run_order_bench_build_inv") {
