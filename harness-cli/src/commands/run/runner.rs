@@ -189,11 +189,8 @@ impl<'a> BenchRunner<'a> {
                 .output()
                 .map_err(|e| anyhow::anyhow!("Failed to build `{}`: {}", build_name, e))?;
             if !out.status.success() {
-                anyhow::bail!(
-                    "Failed to build `{}`: {}",
-                    build_name,
-                    String::from_utf8_lossy(&out.stderr)
-                );
+                eprintln!("{}", String::from_utf8_lossy(&out.stderr));
+                anyhow::bail!("Failed to build `{}`", build_name,);
             }
         }
         Ok(())
