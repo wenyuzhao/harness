@@ -198,6 +198,11 @@ impl<'a> BenchRunner<'a> {
 
     /// Run one benchmark with one build, for N iterations.
     pub fn test_run(&self, bench: &str, build_name: &str) -> anyhow::Result<()> {
+        print_md!(
+            "# Running bench *{}* with build *{}*\n\n",
+            bench,
+            build_name
+        );
         self.setup_env_before_benchmarking()?;
         self.setup_before_invocation()?;
         let build = self.run.profile.builds.get(build_name).unwrap();
