@@ -84,7 +84,7 @@ impl RunArgs {
         let log_dir = logs_dir.join(run_id);
         let latest_log_dir = logs_dir.join("latest");
         std::fs::create_dir_all(&log_dir)?;
-        if latest_log_dir.exists() {
+        if latest_log_dir.exists() || latest_log_dir.is_symlink() {
             if latest_log_dir.is_dir() && !latest_log_dir.is_symlink() {
                 std::fs::remove_dir(&latest_log_dir)?;
             } else {
