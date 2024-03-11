@@ -5,7 +5,7 @@ use std::{collections::HashMap, fs::OpenOptions, path::PathBuf, time::Instant};
 use libloading::{Library, Symbol};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
-use crate::bencher::Value;
+use crate::bencher::{StatPrintFormat, Value};
 
 #[derive(Default)]
 struct Counters {
@@ -158,43 +158,46 @@ impl ProbeManager {
         self.counters = counters;
     }
 
-    pub(crate) fn dump_counters(
+    fn dump_counters_stderr_table(&self, stats: &[(String, Box<dyn Value>)]) {
+        for (name, _) in stats {
+            eprint!("{}\t", name);
+        }
+        eprintln!();
+        for (_, value) in stats {
+            eprint!("{}\t", value.to_string());
+        }
+        eprintln!();
+    }
+
+    fn dump_counters_stderr_yaml(&self, stats: &[(String, Box<dyn Value>)]) {
+        for (name, value) in stats {
+            eprintln!("{}: {}", name, value.to_string());
+        }
+    }
+
+    fn dump_counters_stderr(&self, stats: &[(String, Box<dyn Value>)], format: StatPrintFormat) {
+        let force_table = std::env::var("HARNESS_LOG_STAT_FORMAT") == Ok("table".to_owned());
+        if force_table {
+            return self.dump_counters_stderr_table(stats);
+        }
+        match format {
+            StatPrintFormat::Table => self.dump_counters_stderr_table(stats),
+            StatPrintFormat::Yaml => self.dump_counters_stderr_yaml(stats),
+        }
+    }
+
+    fn dump_counters_csv(
         &self,
         name: &str,
         csv: Option<&PathBuf>,
         invocation: Option<usize>,
         build: Option<&String>,
-        extra_stats: &[(String, Box<dyn Value>)],
+        stats: &[(String, Box<dyn Value>)],
     ) {
-        eprintln!(
-            "============================ Harness Statistics Totals ============================"
-        );
-        for (name, _value) in &self.counters.counters {
-            eprint!("{}\t", name);
-        }
-        for (name, _) in extra_stats {
-            eprint!("{}\t", name);
-        }
-        eprintln!();
-        for (_name, value) in &self.counters.counters {
-            eprint!("{}\t", value);
-        }
-        for (_, value) in extra_stats {
-            eprint!("{}\t", value.to_string());
-        }
-        eprintln!();
-        eprintln!(
-            "------------------------------ End Harness Statistics -----------------------------"
-        );
-        // dump counters to csv
         if let Some(csv) = csv {
             if !csv.exists() {
                 let mut headers = "bench,build,invocation".to_owned();
-                for (name, _value) in &self.counters.counters {
-                    headers += ",";
-                    headers += name;
-                }
-                for (name, _value) in extra_stats {
+                for (name, _value) in stats {
                     headers += ",";
                     headers += name;
                 }
@@ -202,14 +205,42 @@ impl ProbeManager {
                 std::fs::write(csv, headers).unwrap();
             }
             let mut record = format!("{},{},{}", name, build.unwrap(), invocation.unwrap_or(0));
-            for (_name, value) in &self.counters.counters {
-                record += &format!(",{}", value);
-            }
-            for (_, value) in extra_stats {
+            for (_, value) in stats {
                 record += &format!(",{}", value.to_string());
             }
             let mut csv = OpenOptions::new().append(true).open(csv).unwrap();
             writeln!(csv, "{record}").unwrap();
         }
+    }
+
+    pub(crate) fn dump_counters(
+        &self,
+        name: &str,
+        csv: Option<&PathBuf>,
+        invocation: Option<usize>,
+        build: Option<&String>,
+        extra_stats: Vec<(String, Box<dyn Value>)>,
+        format: StatPrintFormat,
+    ) {
+        // Collect all stats
+        let mut stats: Vec<(String, Box<dyn Value>)> = vec![];
+        for (name, value) in &self.counters.counters {
+            stats.push((name.clone(), Box::new(*value)));
+        }
+        for (name, value) in extra_stats {
+            stats.push((name.clone(), value));
+        }
+        // Print to the log file
+        let banner_start = std::env::var("HARNESS_LOG_STAT_BANNER_START").unwrap_or_else(|_| {
+            "============================ Harness Statistics Totals ============================".to_string()
+        });
+        eprintln!("{banner_start}");
+        self.dump_counters_stderr(&stats, format);
+        let banner_end = std::env::var("HARNESS_LOG_STAT_BANNER_END").unwrap_or_else(|_| {
+            "------------------------------ End Harness Statistics -----------------------------".to_string()
+        });
+        eprintln!("{banner_end}");
+        // Print to the CSV file
+        self.dump_counters_csv(name, csv, invocation, build, &stats);
     }
 }

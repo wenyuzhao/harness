@@ -5,7 +5,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use clap::Parser;
+use clap::{Parser, ValueEnum};
 
 use crate::probe::ProbeManager;
 
@@ -39,6 +39,13 @@ pub struct BenchArgs {
     #[doc(hidden)]
     /// Specify current build name
     pub current_build: Option<String>,
+}
+
+#[derive(ValueEnum, Debug, Clone, Copy, PartialEq, Eq)]
+#[clap(rename_all = "kebab_case")]
+pub(crate) enum StatPrintFormat {
+    Table,
+    Yaml,
 }
 
 pub trait Value: ToString + 'static {}
@@ -317,7 +324,8 @@ impl SingleBenchmarkRunner {
             self.args.output_csv.as_ref(),
             self.args.current_invocation,
             self.args.current_build.as_ref(),
-            &self.bencher.extra_stats.lock().unwrap(),
+            std::mem::take(&mut *self.bencher.extra_stats.lock().unwrap()),
+            StatPrintFormat::Yaml,
         );
         // Destroy probes
         self.bencher.probes.borrow_mut().deinit();
