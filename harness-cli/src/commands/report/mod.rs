@@ -1,10 +1,9 @@
 use std::path::PathBuf;
 
-use cargo_metadata::MetadataCommand;
 use chrono::{DateTime, Utc};
 use clap::Parser;
 
-use crate::configs::run_info::RunInfo;
+use crate::configs::run_info::{CrateInfo, RunInfo};
 
 pub(crate) mod data;
 
@@ -22,26 +21,7 @@ pub struct ReportArgs {
     pub baseline: Option<String>,
 }
 
-struct CrateInfo {
-    name: String,
-    target_dir: PathBuf,
-}
-
 impl ReportArgs {
-    fn load_crate_info(&self) -> anyhow::Result<CrateInfo> {
-        let Ok(meta) = MetadataCommand::new().manifest_path("./Cargo.toml").exec() else {
-            anyhow::bail!("Failed to get metadata from ./Cargo.toml");
-        };
-        let target_dir = meta.target_directory.as_std_path();
-        let Some(pkg) = meta.root_package() else {
-            anyhow::bail!("No root package found");
-        };
-        Ok(CrateInfo {
-            name: pkg.name.clone(),
-            target_dir: target_dir.to_owned(),
-        })
-    }
-
     fn find_log_dir(&self, crate_info: &CrateInfo) -> anyhow::Result<PathBuf> {
         let logs_dir = crate_info.target_dir.join("harness").join("logs");
         let log_dir = if let Some(run_id) = &self.run_id {
@@ -57,7 +37,7 @@ impl ReportArgs {
 
     pub fn run(&self) -> anyhow::Result<()> {
         // Collect crate info and other metadata
-        let crate_info = self.load_crate_info()?;
+        let crate_info = CrateInfo::load()?;
         let log_dir = self.find_log_dir(&crate_info)?;
         let config = RunInfo::load(&log_dir.join("config.toml"))?;
         let baseline = if self.norm {

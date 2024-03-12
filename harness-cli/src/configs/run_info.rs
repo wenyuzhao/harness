@@ -19,12 +19,13 @@
 
 use std::{collections::HashMap, path::PathBuf};
 
+use cargo_metadata::MetadataCommand;
 use chrono::{DateTime, Local};
 use serde::{Deserialize, Serialize};
 
 use crate::utils;
 
-use super::harness::Profile;
+use super::harness::{CargoConfig, Profile};
 
 /// The evaluation run metadata. This will be collected before each evaluation and dumped to the log directory.
 #[derive(Debug, Serialize, Deserialize)]
@@ -81,6 +82,27 @@ pub struct CrateInfo {
     pub target_dir: PathBuf,
     /// All benchmark names used in the evaluation
     pub benches: Vec<String>,
+    /// Workspace root
+    pub workspace_root: PathBuf,
+}
+
+impl CrateInfo {
+    pub(crate) fn load() -> anyhow::Result<Self> {
+        let Ok(meta) = MetadataCommand::new().manifest_path("./Cargo.toml").exec() else {
+            anyhow::bail!("Failed to get metadata from ./Cargo.toml");
+        };
+        let target_dir = meta.target_directory.as_std_path();
+        let Some(pkg) = meta.root_package() else {
+            anyhow::bail!("No root package found");
+        };
+        let benches = CargoConfig::load_benches()?;
+        Ok(CrateInfo {
+            name: pkg.name.clone(),
+            target_dir: target_dir.to_owned(),
+            benches,
+            workspace_root: meta.workspace_root.as_std_path().to_owned(),
+        })
+    }
 }
 
 /// The system information, including the hardware specs, the OS info, and the environment variables.

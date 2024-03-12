@@ -63,22 +63,6 @@ impl RunArgs {
         (run_id, t)
     }
 
-    fn load_crate_info(&self) -> anyhow::Result<CrateInfo> {
-        let Ok(meta) = MetadataCommand::new().manifest_path("./Cargo.toml").exec() else {
-            anyhow::bail!("Failed to get metadata from ./Cargo.toml");
-        };
-        let target_dir = meta.target_directory.as_std_path();
-        let Some(pkg) = meta.root_package() else {
-            anyhow::bail!("No root package found");
-        };
-        let benches = CargoConfig::load_benches()?;
-        Ok(CrateInfo {
-            name: pkg.name.clone(),
-            target_dir: target_dir.to_owned(),
-            benches,
-        })
-    }
-
     fn prepare_logs_dir(&self, crate_info: &CrateInfo, run_id: &str) -> anyhow::Result<PathBuf> {
         let logs_dir = crate_info.target_dir.join("harness").join("logs");
         let log_dir = logs_dir.join(run_id);
@@ -225,7 +209,7 @@ impl RunArgs {
     }
 
     pub fn run(&self) -> anyhow::Result<()> {
-        let crate_info = self.load_crate_info()?;
+        let crate_info = CrateInfo::load()?;
         if self.bench.is_some() {
             return self.test_run(&crate_info);
         }
