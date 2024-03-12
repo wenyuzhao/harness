@@ -94,9 +94,9 @@ Reproducing a previous evaluation is as simple as running `cargo harness run --c
 In the same `<RUNID>/config.toml` file, `harness` also records all the environmental info for every benchmark run, including but not limited to:
 
 * All global system environment variables at the time of the run
-* OS / CPU / Memory / Cache information used for the run
+* OS / CPU / Memory / Swap information used for the run
 
-Any change to the system environments would affect reproducibility. So it's recommended to keep the same environment variables and the same OS / CPU / Memory / Cache config _as much as possible_. `harness` automatically verifies the current system info against the recorded ones and warns for any differences.
+Any change to the system environments would affect reproducibility. So it's recommended to keep the same environment variables and the same OS / CPU / Memory / Swap config _as much as possible_. `harness` automatically verifies the current system info against the recorded ones and warns for any differences.
 
 # TODO:
 
