@@ -20,8 +20,8 @@ fn dump_warnings(title: &str, warnings: &[String]) {
 
 pub fn run_all_checks(args: &RunArgs, run: &RunInfo, old: Option<&RunInfo>) -> anyhow::Result<()> {
     if let Some(old) = old {
-        pre_bench::check(old, run)?;
+        reproducibility::check(old, run)?;
     }
-    reproducibility::check(args, run)?;
+    pre_bench::check(args, run)?;
     Ok(())
 }
