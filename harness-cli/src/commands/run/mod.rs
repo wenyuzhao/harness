@@ -1,13 +1,12 @@
 use std::path::{Path, PathBuf};
 
-use cargo_metadata::MetadataCommand;
 use chrono::{DateTime, Local};
 use clap::Parser;
 use termimad::crossterm::style::Stylize;
 
 use crate::{
     configs::{
-        harness::{BuildConfig, CargoConfig, HarnessConfig, Profile},
+        harness::{BuildConfig, HarnessConfig, Profile},
         run_info::{CrateInfo, RunInfo},
     },
     utils,
