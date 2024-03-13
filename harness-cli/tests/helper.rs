@@ -98,11 +98,18 @@ impl TestCrate {
         Ok(commit)
     }
 
-    pub fn harness_run(&self, args: &[&str]) -> anyhow::Result<()> {
+    pub fn harness_run(&self, args: &[&str]) -> anyhow::Result<String> {
         let mut cmd_args = vec!["harness", "run"];
         cmd_args.extend_from_slice(args);
         harness_cli::entey(&harness_cli::Cli::parse_from(cmd_args))?;
-        Ok(())
+        let config_toml_str = std::fs::read_to_string("target/harness/logs/latest/config.toml")?;
+        let config_toml: toml::Table = toml::from_str(&config_toml_str)?;
+        Ok(config_toml
+            .get("runid")
+            .unwrap()
+            .as_str()
+            .unwrap()
+            .to_owned())
     }
 
     pub fn get_harness_log(&self, bench: &str, build: &str) -> anyhow::Result<String> {

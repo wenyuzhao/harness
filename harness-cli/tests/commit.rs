@@ -56,7 +56,6 @@ fn test_empty_build_targets() -> anyhow::Result<()> {
         format!(
             r#"
             {CARGO_TOML_COMMON}
-
             [package.metadata.harness.profiles.default.builds]
             build_a = {{}}
             build_b = {{}}
@@ -87,7 +86,6 @@ fn test_build_targets_with_different_commits() -> anyhow::Result<()> {
         format!(
             r#"
             {CARGO_TOML_COMMON}
-
             [package.metadata.harness.profiles.default.builds]
             build_a = {{}}
             build_b = {{ commit = "{commit1}" }}
