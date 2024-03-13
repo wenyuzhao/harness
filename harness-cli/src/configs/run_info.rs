@@ -23,7 +23,7 @@ use cargo_metadata::MetadataCommand;
 use chrono::{DateTime, Local};
 use serde::{Deserialize, Serialize};
 
-use crate::utils;
+use crate::utils::{self, lockfile::load_lockfiles};
 
 use super::harness::{CargoConfig, Profile};
 
@@ -47,6 +47,8 @@ pub struct RunInfo {
     pub profile: Profile,
     /// Current system information
     pub system: SystemInfo,
+    /// Cargo.lock files for each used git commit, for deterministic builds
+    pub lockfiles: Lockfiles,
 }
 
 impl RunInfo {
@@ -56,6 +58,7 @@ impl RunInfo {
         runid: String,
         start_time: DateTime<Local>,
     ) -> anyhow::Result<Self> {
+        let lockfiles = load_lockfiles(&crate_info, &profile)?;
         Ok(Self {
             crate_info,
             system: utils::sys::get_current_system_info(),
@@ -64,6 +67,7 @@ impl RunInfo {
             commit: utils::git::get_git_hash()?,
             start_timestamp_utc: start_time.to_utc().timestamp(),
             finish_timestamp_utc: None,
+            lockfiles,
         })
     }
 
@@ -142,4 +146,11 @@ pub struct SystemInfo {
     #[cfg(target_os = "linux")]
     #[serde(rename = "scaling-governor")]
     pub scaling_governor: Vec<String>,
+}
+
+/// Cargo.lock files for each used git commit, for deterministic builds
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Lockfiles {
+    #[serde(flatten)]
+    pub lockfiles: HashMap<String, toml::Value>,
 }

@@ -15,7 +15,7 @@ use crate::{
 use super::report::ReportArgs;
 
 mod checks;
-mod runner;
+pub(crate) mod runner;
 
 /// Start a benchmarking run
 #[derive(Parser)]
