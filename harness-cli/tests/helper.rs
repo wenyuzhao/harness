@@ -12,6 +12,8 @@ pub fn exec(cmd: impl AsRef<str>, args: &[&str]) -> anyhow::Result<()> {
         .args(args)
         .output()?;
     if !output.status.success() {
+        println!("{}", String::from_utf8_lossy(&output.stdout));
+        println!("{}", String::from_utf8_lossy(&output.stderr));
         anyhow::bail!("Failed to run command: {} {}", cmd.as_ref(), args.join(" "));
     }
     Ok(())
