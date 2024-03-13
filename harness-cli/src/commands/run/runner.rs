@@ -143,7 +143,7 @@ impl<'a> BenchRunner<'a> {
             let build = &self.run.profile.builds[build_name];
             let commit = build.commit.as_deref().unwrap_or(self.run.commit.as_str());
             let _git_guard = utils::git::checkout(commit)?;
-            let _lock_guard = replay_lockfile(&self.run, commit)?;
+            let _lock_guard = replay_lockfile(self.run, commit)?;
             let mut cmd = get_bench_build_command(&self.run.profile, build_name);
             let out = cmd
                 .output()
@@ -165,7 +165,7 @@ impl<'a> BenchRunner<'a> {
         );
         self.setup_env_before_benchmarking()?;
         self.setup_before_invocation()?;
-        let mut cmd = get_bench_run_command(&self.run, bench, build_name, 0, None);
+        let mut cmd = get_bench_run_command(self.run, bench, build_name, 0, None);
         if cmd.status()?.success() {
             Ok(())
         } else {
@@ -192,15 +192,14 @@ impl<'a> BenchRunner<'a> {
         // Checkout the given commit if it's specified
         let commit = build.commit.as_deref().unwrap_or(self.run.commit.as_str());
         let _git_guard = utils::git::checkout(commit)?;
-        let _lock_guard = replay_lockfile(&self.run, commit);
+        let _lock_guard = replay_lockfile(self.run, commit);
         let outputs = OpenOptions::new()
             .append(true)
             .create(true)
             .open(log_file)?;
         let errors = outputs.try_clone()?;
         let mut outputs2 = outputs.try_clone()?;
-        let mut cmd =
-            get_bench_run_command(&self.run, bench, build_name, invocation, Some(log_dir));
+        let mut cmd = get_bench_run_command(self.run, bench, build_name, invocation, Some(log_dir));
         cmd.stdout(outputs).stderr(errors);
         self.dump_metadata_for_single_invocation(&mut outputs2, &cmd, build)?;
         let out = cmd.status()?;

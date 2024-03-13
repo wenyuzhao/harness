@@ -23,7 +23,7 @@ fn generate_cargo_build_args_and_envs(profile: &Profile, build: &str, cmd: &mut 
 pub fn get_bench_build_command(profile: &Profile, build: &str) -> Command {
     let mut cmd = Command::new("cargo");
     cmd.arg("bench");
-    generate_cargo_build_args_and_envs(&profile, build, &mut cmd);
+    generate_cargo_build_args_and_envs(profile, build, &mut cmd);
     cmd.arg("--no-run");
     cmd
 }
