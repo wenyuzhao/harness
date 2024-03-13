@@ -9,7 +9,7 @@ pub mod configs;
 
 /// The Precise and Reproducible Benchmarking Harness CLI
 #[derive(Parser)]
-struct Cli {
+pub struct Cli {
     #[command(subcommand)]
     command: Commands,
 }
@@ -42,8 +42,14 @@ pub fn dump_backtrace(e: &anyhow::Error) {
 
 #[doc(hidden)]
 pub fn main() -> anyhow::Result<()> {
+    let args = &*CMD_ARGS;
+    entey(args)
+}
+
+#[doc(hidden)]
+pub fn entey(args: &Cli) -> anyhow::Result<()> {
     let git = git_info2::get();
-    let run_result = match &CMD_ARGS.command {
+    let run_result = match &args.command {
         Commands::Run(cmd) => cmd.run(),
         Commands::Report(cmd) => cmd.run(),
     };

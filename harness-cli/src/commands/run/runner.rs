@@ -129,7 +129,10 @@ impl<'a> BenchRunner<'a> {
         writeln!(
             f,
             "commit: {}",
-            utils::git::get_git_hash().unwrap_or_else(|_| "unknown".to_owned())
+            git_info2::get()
+                .head
+                .last_commit_hash
+                .unwrap_or_else(|| "unknown".to_owned())
         )?;
         writeln!(f, "---")?;
         Ok(())
