@@ -11,7 +11,7 @@
   * [System checks](#system-checks)
 * [**_<ins>Reproducible</ins>_** Evaluation](#reproducible-evaluation)
   * [Tracked evaluation configs](#tracked-evaluation-configs)
-  * [Tracked program revisions](#tracked-program-revisions)
+  * [Deterministic builds](#deterministic-builds)
   * [System environment verification](#system-environment-verification)
 * [SIGPLAN Empirical Evaluation Checklist](https://github.com/SIGPLAN/empirical-evaluation/raw/master/checklist/checklist.pdf)
 
@@ -80,14 +80,17 @@ After all the $I$ invocations are finished, running `cargo harness report` will 
 
 **`harness` refuses to support casual benchmarking.** Each evaluation is enforced to be properly tracked by Git, including all the benchmark configurations and the revisions of all the benchmarks and benchmarked programs. Verifying the correctness of any evaluation, or re-running an evaluation from years ago, can be done by simply tracking back the git history.
 
-## Tracked program revisions
+## Deterministic builds
 
 `harness` assigns each individual evaluation a unique `RUNID` and generates an evaluation summary at `target/harness/logs/<RUNID>/config.toml`. `harness` uses this file to record the evaluation info for the current benchmark run, including:
 
 * Git commit of the evaluation config
 * Git commit, cargo features, and environment variables used for producing each evaluated build
+* The `Cargo.lock` file used for producing each evaluated builds
 
-Reproducing a previous evaluation is as simple as running `cargo harness run --config <RUNID>`. `harness` automatically checks out the corresponding commits, sets up the recorded cargo features and environment variables to ensure the codebase and builds are exactly at the same state as when `RUNID` was generated.
+Reproducing a previous evaluation is as simple as running `cargo harness run --config <RUNID>`. `harness` automatically checks out the corresponding commits, sets up the recorded cargo features or environment variables, and replays the pre-recorded `Cargo.lock` file, to ensure the codebase and builds are exactly at the same state as when `RUNID` was generated.
+
+_Note: `harness` cannot check local dependencies right now. For completely deterministic builds, don't use local dependencies._
 
 ## System environment verification
 
