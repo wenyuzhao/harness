@@ -53,6 +53,8 @@ impl TestCrate {
         exec("cargo", &["init", "--name", name, "--lib"])?;
         std::fs::write(".gitignore", "/target\nCargo.lock")?;
         exec("cargo", &["build"])?;
+        exec("git", &["config", "user.email", "you@example.com"])?;
+        exec("git", &["config", "user.name", "Your Name"])?;
         exec("git", &["add", "."])?;
         exec("git", &["commit", "-m", "Initial Commit"])?;
         exec("git", &["branch", "-M", "main"])?;
