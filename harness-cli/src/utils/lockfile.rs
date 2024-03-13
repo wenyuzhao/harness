@@ -56,7 +56,10 @@ impl Drop for TempLockfileGuard {
     }
 }
 
-pub fn replay_lockfile(run_info: &RunInfo, hash: &str) -> anyhow::Result<TempLockfileGuard> {
+pub fn replay_lockfile(run_info: &RunInfo, mut hash: &str) -> anyhow::Result<TempLockfileGuard> {
+    if hash.ends_with("-dirty") {
+        hash = hash.trim_end_matches("-dirty");
+    }
     let lockfile = run_info
         .lockfiles
         .lockfiles
