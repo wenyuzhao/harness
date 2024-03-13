@@ -1,3 +1,6 @@
+use std::vec;
+
+use clap::Parser;
 use tempdir::TempDir;
 
 pub fn exec(cmd: impl AsRef<str>, args: &[&str]) -> anyhow::Result<()> {
@@ -34,6 +37,7 @@ impl TestCrate {
         exec("cargo", &["build"])?;
         exec("git", &["add", "."])?;
         exec("git", &["commit", "-m", "Initial Commit"])?;
+        exec("git", &["branch", "-M", "main"])?;
         std::env::set_current_dir(dir)?;
         Ok(Self { temp_dir })
     }
@@ -44,12 +48,39 @@ impl TestCrate {
     }
 
     pub fn file(&mut self, path: impl AsRef<str>, content: impl AsRef<str>) -> anyhow::Result<()> {
+        let full_path = self.temp_dir.path().join(path.as_ref());
+        let dir = full_path.parent().unwrap();
+        std::fs::create_dir_all(dir)?;
         std::fs::write(self.temp_dir.path().join(path.as_ref()), content.as_ref())?;
         Ok(())
     }
 
-    pub fn add_dep(&self, dep: &str) -> anyhow::Result<()> {
+    pub fn add_dep(&mut self, dep: &str) -> anyhow::Result<()> {
         exec("cargo", &["add", dep])?;
         Ok(())
+    }
+
+    pub fn get_current_branch(&self) -> Option<String> {
+        git_info2::get().current_branch
+    }
+
+    pub fn commit(&mut self) -> anyhow::Result<String> {
+        exec("git", &["add", "."])?;
+        exec("git", &["commit", "-m", "test"])?;
+        Ok(get_latest_commit()?)
+    }
+
+    pub fn harness_run(&self, args: &[&str]) -> anyhow::Result<()> {
+        let mut cmd_args = vec!["harness", "run"];
+        cmd_args.extend_from_slice(args);
+        harness_cli::entey(&harness_cli::Cli::parse_from(cmd_args))?;
+        Ok(())
+    }
+
+    pub fn get_harness_log(&self, bench: &str, build: &str) -> anyhow::Result<String> {
+        Ok(std::fs::read_to_string(format!(
+            "target/harness/logs/latest/{}.{}.log",
+            bench, build
+        ))?)
     }
 }
