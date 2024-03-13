@@ -1,7 +1,11 @@
-use std::vec;
+#![allow(unused)]
+
+use std::{path::Path, sync::Mutex, vec};
 
 use clap::Parser;
 use tempdir::TempDir;
+
+pub static SYNC: Mutex<()> = Mutex::new(());
 
 pub fn exec(cmd: impl AsRef<str>, args: &[&str]) -> anyhow::Result<()> {
     let output = std::process::Command::new(cmd.as_ref())
@@ -23,26 +27,47 @@ pub fn get_latest_commit() -> anyhow::Result<String> {
 
 pub struct TestCrate {
     temp_dir: TempDir,
+    commits: usize,
+    prev_pwd: Option<std::path::PathBuf>,
+}
+
+impl Drop for TestCrate {
+    fn drop(&mut self) {
+        if let Some(prev_pwd) = self.prev_pwd.as_ref() {
+            std::env::set_current_dir(prev_pwd).unwrap();
+        }
+    }
 }
 
 impl TestCrate {
-    pub fn new() -> anyhow::Result<Self> {
+    pub fn new(name: Option<&str>) -> anyhow::Result<Self> {
         let temp_dir = TempDir::new("harness")?;
         let test_crate = temp_dir.path();
         // Create project
         let dir = std::env::current_dir()?;
         std::env::set_current_dir(test_crate)?;
-        exec("cargo", &["init", "--name", "harness-test", "--lib"])?;
+        println!("Creating test crate in {}", test_crate.display());
+        let name = name.unwrap_or("harness-test");
+        exec("cargo", &["init", "--name", name, "--lib"])?;
         std::fs::write(".gitignore", "/target\nCargo.lock")?;
         exec("cargo", &["build"])?;
         exec("git", &["add", "."])?;
         exec("git", &["commit", "-m", "Initial Commit"])?;
         exec("git", &["branch", "-M", "main"])?;
         std::env::set_current_dir(dir)?;
-        Ok(Self { temp_dir })
+        Ok(Self {
+            temp_dir,
+            commits: 0,
+            prev_pwd: None,
+        })
     }
 
-    pub fn enter(self) -> anyhow::Result<Self> {
+    pub fn path(&self) -> &Path {
+        self.temp_dir.path()
+    }
+
+    pub fn enter(mut self) -> anyhow::Result<Self> {
+        self.prev_pwd = Some(std::env::current_dir()?);
         std::env::set_current_dir(self.temp_dir.path())?;
         Ok(self)
     }
@@ -67,7 +92,10 @@ impl TestCrate {
     pub fn commit(&mut self) -> anyhow::Result<String> {
         exec("git", &["add", "."])?;
         exec("git", &["commit", "-m", "test"])?;
-        Ok(get_latest_commit()?)
+        self.commits += 1;
+        let commit = get_latest_commit()?;
+        println!("Commit #{}: {}", self.commits, commit);
+        Ok(commit)
     }
 
     pub fn harness_run(&self, args: &[&str]) -> anyhow::Result<()> {

@@ -43,7 +43,11 @@ pub fn dump_backtrace(e: &anyhow::Error) {
 #[doc(hidden)]
 pub fn main() -> anyhow::Result<()> {
     let args = &*CMD_ARGS;
-    entey(args)
+    let result = entey(args);
+    if result.is_err() {
+        std::process::exit(1);
+    }
+    Ok(())
 }
 
 #[doc(hidden)]
@@ -61,9 +65,6 @@ pub fn entey(args: &Cli) -> anyhow::Result<()> {
     if let Err(err) = restore_result.as_ref() {
         eprintln!("❌ {}: {}", "ERROR".red().bold(), err.to_string().red());
         dump_backtrace(err);
-    }
-    if run_result.is_err() || restore_result.is_err() {
-        std::process::exit(1);
     }
     Ok(())
 }
