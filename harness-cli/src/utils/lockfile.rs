@@ -2,7 +2,7 @@ use std::{collections::HashMap, path::Path};
 
 use crate::configs::{
     harness::Profile,
-    run_info::{CrateInfo, Lockfiles},
+    run_info::{CrateInfo, Lockfiles, RunInfo},
 };
 
 use super::{bench_cmd, git};
@@ -22,9 +22,7 @@ pub fn load_lockfiles(crate_info: &CrateInfo, profile: &Profile) -> anyhow::Resu
     for (build_name, build) in &profile.builds {
         // Switch to the build commit
         let commit = build.commit.as_deref().unwrap_or(profile_commit.as_str());
-        if commit != profile_commit {
-            git::checkout(commit)?;
-        }
+        let _git_guard = git::checkout(commit)?;
         // Run cargo build once to generate the lockfile
         if !lockfile_path.exists() {
             let mut cmd = bench_cmd::get_bench_build_command(profile, build_name);
@@ -43,10 +41,32 @@ pub fn load_lockfiles(crate_info: &CrateInfo, profile: &Profile) -> anyhow::Resu
             commit_hash = commit_hash.trim_end_matches("-dirty").to_owned();
         }
         lockfiles.insert(commit_hash, lockfile);
-        // Switch back to the original commit
-        if commit != profile_commit {
-            git::checkout(&profile_commit)?;
-        }
     }
     Ok(Lockfiles { lockfiles })
+}
+
+pub struct TempLockfileGuard {
+    lockfile_path: std::path::PathBuf,
+    original_lockfile: String,
+}
+
+impl Drop for TempLockfileGuard {
+    fn drop(&mut self) {
+        std::fs::write(&self.lockfile_path, &self.original_lockfile).unwrap();
+    }
+}
+
+pub fn replay_lockfile(run_info: &RunInfo, hash: &str) -> anyhow::Result<TempLockfileGuard> {
+    let lockfile = run_info
+        .lockfiles
+        .lockfiles
+        .get(hash)
+        .ok_or_else(|| anyhow::anyhow!("Lockfile for commit `{}` not found", hash))?;
+    let lockfile_path = run_info.crate_info.workspace_root.join("Cargo.lock");
+    let original_lockfile = std::fs::read_to_string(&lockfile_path)?;
+    std::fs::write(&lockfile_path, toml::to_string(lockfile)?)?;
+    Ok(TempLockfileGuard {
+        lockfile_path,
+        original_lockfile,
+    })
 }

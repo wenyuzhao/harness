@@ -45,14 +45,18 @@ pub fn restore_git_state(prev: &GitInfo) -> anyhow::Result<()> {
         } else {
             prev.head.last_commit_hash.as_ref().unwrap()
         };
-        checkout(checkout_target)?;
+        checkout_no_guard(checkout_target)?;
     }
     Ok(())
 }
 
-pub fn checkout(mut commit: &str) -> anyhow::Result<()> {
+fn checkout_no_guard(mut commit: &str) -> anyhow::Result<bool> {
+    let current_commit = git_info2::get().head.last_commit_hash.unwrap();
     if commit.ends_with("-dirty") {
         commit = commit.trim_end_matches("-dirty");
+    }
+    if current_commit == commit {
+        return Ok(false);
     }
     let output = Command::new("git").args(["checkout", commit]).output()?;
     if !output.status.success() {
@@ -62,5 +66,21 @@ pub fn checkout(mut commit: &str) -> anyhow::Result<()> {
             String::from_utf8_lossy(&output.stderr)
         );
     }
-    Ok(())
+    Ok(true)
+}
+
+pub struct TempGitCommitGuard {
+    prev: GitInfo,
+}
+
+impl Drop for TempGitCommitGuard {
+    fn drop(&mut self) {
+        restore_git_state(&self.prev).unwrap();
+    }
+}
+
+pub fn checkout(commit: &str) -> anyhow::Result<TempGitCommitGuard> {
+    let prev = git_info2::get();
+    checkout_no_guard(commit)?;
+    Ok(TempGitCommitGuard { prev })
 }

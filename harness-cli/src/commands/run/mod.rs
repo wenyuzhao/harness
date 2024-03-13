@@ -9,7 +9,7 @@ use crate::{
         harness::{BuildConfig, HarnessConfig, Profile},
         run_info::{CrateInfo, RunInfo},
     },
-    utils,
+    utils::{self, git::TempGitCommitGuard},
 };
 
 use super::report::ReportArgs;
@@ -145,7 +145,10 @@ impl RunArgs {
         Ok(())
     }
 
-    fn prepare_reproduced_run(&self, crate_info: &CrateInfo) -> anyhow::Result<RunInfo> {
+    fn prepare_reproduced_run(
+        &self,
+        crate_info: &CrateInfo,
+    ) -> anyhow::Result<(RunInfo, TempGitCommitGuard)> {
         // Load config and previous machine info
         let config_path_or_runid = self.config.as_ref().unwrap();
         let config_path = if config_path_or_runid.ends_with(".toml") {
@@ -170,10 +173,8 @@ impl RunArgs {
             commit = commit.trim_end_matches("-dirty").to_owned();
         }
         println!("{}", format!("Checkout git commit: {}\n", commit).magenta());
-        if utils::git::get_git_hash()? != run_info.commit {
-            utils::git::checkout(&commit)?;
-        }
-        Ok(run_info)
+        let guard = utils::git::checkout(&run_info.commit)?;
+        Ok((run_info, guard))
     }
 
     pub fn test_run(&self, crate_info: &CrateInfo) -> anyhow::Result<()> {
@@ -212,18 +213,18 @@ impl RunArgs {
         if self.bench.is_some() {
             return self.test_run(&crate_info);
         }
-        let (profile, old_run) = if self.config.is_some() {
+        let (profile, old_run, _guard) = if self.config.is_some() {
             // Reproduce a previous run
-            let old_run = self.prepare_reproduced_run(&crate_info)?;
+            let (old_run, guard) = self.prepare_reproduced_run(&crate_info)?;
             let profile = old_run.profile.clone();
-            (profile, Some(old_run))
+            (profile, Some(old_run), Some(guard))
         } else {
             // A new run
             let config = HarnessConfig::load_from_cargo_toml()?;
             let Some(profile) = config.profiles.get(&self.profile).cloned() else {
                 anyhow::bail!("Could not find harness profile `{}`", self.profile);
             };
-            (profile, None)
+            (profile, None, None)
         };
         let baseline = profile.baseline.clone();
         self.run_benchmarks(crate_info, profile, old_run.as_ref())?;

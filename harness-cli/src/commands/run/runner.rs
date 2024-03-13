@@ -14,6 +14,7 @@ use crate::{
     utils::{
         self,
         bench_cmd::{get_bench_build_command, get_bench_run_command},
+        lockfile::replay_lockfile,
     },
 };
 
@@ -137,9 +138,9 @@ impl<'a> BenchRunner<'a> {
     fn test_build(&self) -> anyhow::Result<()> {
         for build_name in &self.build_names {
             let build = &self.run.profile.builds[build_name];
-            if let Some(commit) = &build.commit {
-                utils::git::checkout(commit)?;
-            }
+            let commit = build.commit.as_deref().unwrap_or(self.run.commit.as_str());
+            let _git_guard = utils::git::checkout(commit)?;
+            let _lock_guard = replay_lockfile(&self.run, commit)?;
             let mut cmd = get_bench_build_command(&self.run.profile, build_name);
             let out = cmd
                 .output()
@@ -186,9 +187,9 @@ impl<'a> BenchRunner<'a> {
         self.setup_before_invocation()?;
         let log_file = self.get_log_file(bench, build_name);
         // Checkout the given commit if it's specified
-        if let Some(commit) = &build.commit {
-            utils::git::checkout(commit)?;
-        }
+        let commit = build.commit.as_deref().unwrap_or(self.run.commit.as_str());
+        let _git_guard = utils::git::checkout(commit)?;
+        let _lock_guard = replay_lockfile(&self.run, commit);
         let outputs = OpenOptions::new()
             .append(true)
             .create(true)
