@@ -189,6 +189,20 @@ impl RunArgs {
         let Some(mut profile) = config.profiles.get(&self.profile).cloned() else {
             anyhow::bail!("Could not find harness profile `{}`", self.profile);
         };
+        if self.build.is_some()
+            && !profile
+                .builds
+                .contains_key(self.build.as_ref().unwrap().as_str())
+        {
+            anyhow::bail!(
+                "Could not find build `{}` in the profile `{}`",
+                self.build.as_ref().unwrap(),
+                self.profile
+            );
+        }
+        if !crate_info.benches.contains(bench) {
+            anyhow::bail!("Could not find benchmark `{}` in the crate", bench);
+        }
         if let Some(iterations) = self.iterations {
             profile.iterations = iterations;
         }
