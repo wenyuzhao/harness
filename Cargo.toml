@@ -19,6 +19,6 @@ authors = ["Wenyu Zhao <wenyuzhaox@gmail.com>"]
 license = "MIT"
 
 [workspace.dependencies]
-harness = { path = "./harness", version = "0.0.4" }
+harness = { path = "./harness", version = "0.0.5" }
 harness-macros = { path = "./harness/macros", version = "0.0.1" }
 harness-probe-perf = { path = "./probes/perf", version = "0.0.2" }

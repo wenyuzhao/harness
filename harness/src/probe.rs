@@ -223,13 +223,20 @@ impl ProbeManager {
         format: StatPrintFormat,
     ) {
         // Collect all stats
-        let mut stats: Vec<(String, Box<dyn Value>)> = vec![];
+        let mut stats_map: HashMap<String, Box<dyn Value>> = HashMap::new();
         for (name, value) in &self.counters.counters {
-            stats.push((name.clone(), Box::new(*value)));
+            stats_map.insert(name.clone(), Box::new(*value));
         }
         for (name, value) in extra_stats {
+            stats_map.insert(name.clone(), value);
+        }
+        let time = stats_map.remove("time").unwrap();
+        let mut stats: Vec<(String, Box<dyn Value>)> = vec![];
+        for (name, value) in stats_map {
             stats.push((name.clone(), value));
         }
+        stats.sort_by_key(|x| x.0.clone());
+        stats.insert(0, ("time".to_owned(), time));
         // Print to the log file
         let banner_start = std::env::var("HARNESS_LOG_STAT_BANNER_START").unwrap_or_else(|_| {
             "============================ Harness Statistics Totals ============================".to_string()
