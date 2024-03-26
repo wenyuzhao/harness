@@ -1,6 +1,6 @@
 [package]
 name = "harness-cli"
-version = "0.0.6"
+version = "0.0.7"
 description = "Precise and reproducible benchmarking"
 repository = "https://github.com/wenyuzhao/harness"
 homepage = "https://github.com/wenyuzhao/harness"

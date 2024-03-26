@@ -48,10 +48,14 @@ pub fn load_lockfiles(crate_info: &CrateInfo, profile: &Profile) -> anyhow::Resu
 pub struct TempLockfileGuard {
     lockfile_path: std::path::PathBuf,
     original_lockfile: String,
+    changed: bool,
 }
 
 impl Drop for TempLockfileGuard {
     fn drop(&mut self) {
+        if !self.changed {
+            return;
+        }
         std::fs::write(&self.lockfile_path, &self.original_lockfile).unwrap();
     }
 }
@@ -67,9 +71,18 @@ pub fn replay_lockfile(run_info: &RunInfo, mut hash: &str) -> anyhow::Result<Tem
         .ok_or_else(|| anyhow::anyhow!("Lockfile for commit `{}` not found", hash))?;
     let lockfile_path = run_info.crate_info.workspace_root.join("Cargo.lock");
     let original_lockfile = std::fs::read_to_string(&lockfile_path)?;
+    let old_lockfile: toml::Value = toml::from_str(&original_lockfile)?;
+    if &old_lockfile == lockfile {
+        return Ok(TempLockfileGuard {
+            lockfile_path,
+            original_lockfile,
+            changed: false,
+        });
+    }
     std::fs::write(&lockfile_path, toml::to_string(lockfile)?)?;
     Ok(TempLockfileGuard {
         lockfile_path,
         original_lockfile,
+        changed: true,
     })
 }
