@@ -7,18 +7,30 @@ use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
 use crate::bencher::{StatPrintFormat, Value};
 
-#[derive(Default)]
 struct Counters {
     counters: Vec<(String, f32)>,
 }
 
 impl Counters {
+    pub(crate) fn new(walltime: Duration) -> Self {
+        Self {
+            counters: vec![("time".to_owned(), walltime.as_micros() as f32 / 1000.0)],
+        }
+    }
+
     fn merge(&mut self, values: HashMap<String, f32>) {
         let mut values = values.iter().collect::<Vec<_>>();
         values.sort_by_key(|x| x.0.as_str());
         for (k, v) in values {
             self.counters.push((k.clone(), *v));
         }
+    }
+
+    fn get_value(&self, name: &str) -> Option<f32> {
+        self.counters
+            .iter()
+            .find(|(k, _)| k == name)
+            .map(|(_, v)| *v)
     }
 }
 
@@ -76,7 +88,6 @@ impl Probe for BaseProbe {
 }
 
 pub struct ProbeManager {
-    base_probe: BaseProbe,
     probes: Vec<Box<dyn Probe>>,
     counters: Counters,
     libraries: Vec<Library>,
@@ -85,9 +96,8 @@ pub struct ProbeManager {
 impl ProbeManager {
     pub(crate) fn new() -> Self {
         Self {
-            base_probe: BaseProbe::default(),
             probes: vec![],
-            counters: Counters::default(),
+            counters: Counters::new(Duration::ZERO),
             libraries: vec![],
         }
     }
@@ -122,7 +132,6 @@ impl ProbeManager {
             }
             probe_args.push(Some(args));
         }
-        self.base_probe.init(ProbeArgs::default());
         for (i, probe) in self.probes.iter_mut().enumerate() {
             let args = probe_args[i].take().unwrap();
             probe.init(args);
@@ -130,32 +139,38 @@ impl ProbeManager {
     }
 
     pub(crate) fn deinit(&mut self) {
-        self.base_probe.deinit();
         for probe in self.probes.iter_mut() {
             probe.deinit();
         }
     }
 
     pub(crate) fn begin(&mut self, benchmark: &str, iteration: usize, warmup: bool) {
-        self.base_probe.begin(benchmark, iteration, warmup);
         for probe in self.probes.iter_mut() {
             probe.begin(benchmark, iteration, warmup)
         }
     }
 
-    pub(crate) fn end(&mut self, benchmark: &str, iteration: usize, warmup: bool) {
+    pub(crate) fn end(
+        &mut self,
+        benchmark: &str,
+        iteration: usize,
+        warmup: bool,
+        walltime: Duration,
+    ) {
         // harness_end
-        self.base_probe.end(benchmark, iteration, warmup);
         for probe in self.probes.iter_mut() {
             probe.end(benchmark, iteration, warmup)
         }
         // report values
-        let mut counters = Counters::default();
-        counters.merge(self.base_probe.report());
+        let mut counters = Counters::new(walltime);
         for probe in self.probes.iter_mut() {
             counters.merge(probe.report());
         }
         self.counters = counters;
+    }
+
+    pub(crate) fn get_value(&self, name: &str) -> Option<f32> {
+        self.counters.get_value(name)
     }
 
     fn dump_counters_stderr_table(&self, stats: &[(String, Box<dyn Value>)]) {

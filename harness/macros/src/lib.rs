@@ -130,7 +130,7 @@ pub fn probe(_attr: TokenStream, item: TokenStream) -> TokenStream {
         #input
 
         #[no_mangle]
-        pub extern "C" fn harness_register_probe(probes: &mut ProbeManager) {
+        pub extern "C" fn harness_register_probe(probes: &mut ::harness::probe::ProbeManager) {
             probes.register(Box::new(#name::default()));
         }
     };

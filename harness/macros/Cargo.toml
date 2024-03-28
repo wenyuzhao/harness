@@ -1,6 +1,6 @@
 [package]
 name = "harness-macros"
-version = "0.0.1"
+version = "0.0.2"
 description = "Procedural macros for the harness crate"
 repository = "https://github.com/wenyuzhao/harness"
 homepage = "https://github.com/wenyuzhao/harness"
