@@ -79,7 +79,7 @@ impl<'a> Drop for BenchTimer<'a> {
             *state = BencherState::AfterTiming;
         }
         let elapsed = self.start_time.elapsed();
-        self.bencher.timing_end(elapsed.clone());
+        self.bencher.timing_end(elapsed);
         let mut lock = self.bencher.elapsed.lock().unwrap();
         assert!(lock.is_none(), "More than one benchmark timer detected");
         *lock = Some(elapsed);
@@ -240,7 +240,7 @@ impl Bencher {
     /// Returns the wall-clock time of the last timing phase.
     /// Returns `None` if the timing phase has not finished yet.
     pub fn get_walltime(&self) -> Option<Duration> {
-        self.elapsed.lock().unwrap().clone()
+        *self.elapsed.lock().unwrap()
     }
 
     /// Returns the value of a counter as a floating point number.
