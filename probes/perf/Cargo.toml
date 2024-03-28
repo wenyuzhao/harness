@@ -1,6 +1,6 @@
 [package]
 name = "harness-probe-perf"
-version = "0.0.3"
+version = "0.0.4"
 description = "harness probe for reporting linux perf-event counter values"
 repository = "https://github.com/wenyuzhao/harness"
 homepage = "https://github.com/wenyuzhao/harness"
