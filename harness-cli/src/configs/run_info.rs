@@ -17,7 +17,7 @@
 //! cargo harness run --config /path/to/config.toml
 //! ```
 
-use std::{collections::HashMap, path::PathBuf};
+use std::{collections::HashMap, ops::Deref, path::PathBuf};
 
 use cargo_metadata::MetadataCommand;
 use chrono::{DateTime, Local};
@@ -26,6 +26,21 @@ use serde::{Deserialize, Serialize};
 use crate::utils::{self, lockfile::load_lockfiles};
 
 use super::harness::{CargoConfig, Profile};
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ProfileWithName {
+    pub name: String,
+    #[serde(flatten)]
+    pub profile: Profile,
+}
+
+impl Deref for ProfileWithName {
+    type Target = Profile;
+
+    fn deref(&self) -> &Self::Target {
+        &self.profile
+    }
+}
 
 /// The evaluation run metadata. This will be collected before each evaluation and dumped to the log directory.
 #[derive(Debug, Serialize, Deserialize)]
@@ -44,7 +59,7 @@ pub struct RunInfo {
     #[serde(rename = "crate")]
     pub crate_info: CrateInfo,
     /// The enabled evaluation profile
-    pub profile: Profile,
+    pub profile: ProfileWithName,
     /// Current system information
     pub system: SystemInfo,
     /// Cargo.lock files for each used git commit, for deterministic builds
@@ -56,13 +71,17 @@ impl RunInfo {
         crate_info: CrateInfo,
         profile: Profile,
         runid: String,
+        profile_name: String,
         start_time: DateTime<Local>,
     ) -> anyhow::Result<Self> {
         let lockfiles = load_lockfiles(&crate_info, &profile)?;
         Ok(Self {
             crate_info,
             system: utils::sys::get_current_system_info(),
-            profile,
+            profile: ProfileWithName {
+                name: profile_name,
+                profile,
+            },
             runid,
             commit: utils::git::get_git_hash()?,
             start_timestamp_utc: start_time.to_utc().timestamp(),

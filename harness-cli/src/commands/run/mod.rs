@@ -102,6 +102,7 @@ impl RunArgs {
         &self,
         crate_info: CrateInfo,
         mut profile: Profile,
+        profile_name: String,
         old_run: Option<&RunInfo>,
     ) -> anyhow::Result<String> {
         // Overwrite invocations and iterations
@@ -132,7 +133,7 @@ impl RunArgs {
         };
         // Create a new run
         let (runid, start_time) = self.generate_runid();
-        let run_info = RunInfo::new(crate_info, profile, runid.clone(), start_time)?;
+        let run_info = RunInfo::new(crate_info, profile, runid.clone(), profile_name, start_time)?;
         // Run checks
         checks::run_all_checks(self, &run_info, old_run)?;
         // Initialize logs dir
@@ -216,7 +217,13 @@ impl RunArgs {
             self.build.as_ref().unwrap()
         };
         let (runid, start_time) = self.generate_runid();
-        let run_info = RunInfo::new(crate_info.clone(), profile, runid.clone(), start_time)?;
+        let run_info = RunInfo::new(
+            crate_info.clone(),
+            profile,
+            runid.clone(),
+            "@test".to_owned(),
+            start_time,
+        )?;
         let runner = runner::BenchRunner::new(&run_info);
         runner.test_run(bench, build)?;
         Ok(())
@@ -227,20 +234,25 @@ impl RunArgs {
         if self.bench.is_some() {
             return self.test_run(&crate_info);
         }
-        let (profile, old_run, _guard) = if self.config.is_some() {
+        let (profile, profile_name, old_run, _guard) = if self.config.is_some() {
             // Reproduce a previous run
             let (old_run, guard) = self.prepare_reproduced_run(&crate_info)?;
             let profile = old_run.profile.clone();
-            (profile, Some(old_run), Some(guard))
+            (
+                profile,
+                old_run.profile.name.clone(),
+                Some(old_run),
+                Some(guard),
+            )
         } else {
             // A new run
             let config = HarnessConfig::load_from_cargo_toml()?;
             let Some(profile) = config.profiles.get(&self.profile).cloned() else {
                 anyhow::bail!("Could not find harness profile `{}`", self.profile);
             };
-            (profile, None, None)
+            (profile, self.profile.clone(), None, None)
         };
-        let runid = self.run_benchmarks(crate_info, profile, old_run.as_ref())?;
+        let runid = self.run_benchmarks(crate_info, profile, profile_name, old_run.as_ref())?;
         // Report
         if self.upload {
             let report = UploadResultsArgs {
