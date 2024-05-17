@@ -4,7 +4,7 @@ use clap::Parser;
 use reqwest::blocking::Client;
 use serde_json::{Map, Value};
 
-use crate::configs::run_info::CrateInfo;
+use crate::configs::run_info::{CrateInfo, RunInfo};
 
 /// Upload benchmark results to https://reports.harness.rs
 #[derive(Parser)]
@@ -39,6 +39,10 @@ impl UploadResultsArgs {
         }
         if !config_toml.exists() {
             anyhow::bail!("Config file not found: {}", config_toml.display());
+        }
+        let commit = RunInfo::load(&config_toml)?.commit;
+        if commit.ends_with("-dirty") {
+            anyhow::bail!("Cannot upload results with a dirty git worktree.");
         }
 
         let client = Client::new();

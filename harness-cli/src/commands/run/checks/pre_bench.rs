@@ -15,6 +15,7 @@ struct PreBenchmarkingChecker<'a> {
     #[allow(unused)]
     allow_any_scaling_governor: bool,
     run: &'a RunInfo,
+    upload: bool,
 }
 
 impl<'a> PreBenchmarkingChecker<'a> {
@@ -23,6 +24,7 @@ impl<'a> PreBenchmarkingChecker<'a> {
         allow_dirty: bool,
         allow_multi_user: bool,
         allow_any_scaling_governor: bool,
+        upload: bool,
     ) -> Self {
         Self {
             warnings: Vec::new(),
@@ -30,6 +32,7 @@ impl<'a> PreBenchmarkingChecker<'a> {
             allow_multi_user,
             allow_any_scaling_governor,
             run,
+            upload,
         }
     }
 
@@ -124,6 +127,9 @@ impl<'a> PreBenchmarkingChecker<'a> {
                 anyhow::bail!("Git worktree is dirty.");
             }
             self.warn("Git worktree is dirty.");
+            if self.upload {
+                anyhow::bail!("Cannot upload results with a dirty git worktree.");
+            }
         }
         Ok(())
     }
@@ -195,6 +201,7 @@ pub fn check(args: &RunArgs, run: &RunInfo) -> anyhow::Result<()> {
         args.allow_dirty,
         args.allow_multiple_users,
         args.allow_any_scaling_governor,
+        args.upload,
     );
     checker.check()?;
     super::dump_warnings("WARNINGS", &checker.warnings);
