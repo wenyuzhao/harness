@@ -284,6 +284,19 @@ impl SingleBenchmarkRunner {
         }
     }
 
+    fn dump_counters(&self, iteration: usize, is_timing_iteration: bool) {
+        self.bencher.probes.borrow().dump_counters(
+            &self.bench_name,
+            self.args.output_csv.as_ref(),
+            self.args.current_invocation,
+            self.args.current_build.as_ref(),
+            std::mem::take(&mut *self.bencher.extra_stats.lock().unwrap()),
+            StatPrintFormat::Yaml,
+            iteration,
+            is_timing_iteration,
+        );
+    }
+
     fn run_once_impl(&mut self, iteration: usize) -> f32 {
         self.bencher.iter_start(iteration);
         (self.benchmark)(&self.bencher);
@@ -315,6 +328,7 @@ impl SingleBenchmarkRunner {
                 "===== {} {} {} in {:.1} msec =====",
                 self.crate_name, self.bench_name, end_label, elapsed
             );
+            self.dump_counters(i, is_timing_iteration);
         }
     }
 
@@ -330,15 +344,6 @@ impl SingleBenchmarkRunner {
             self.args.iterations
         };
         self.run_iterative(iterations);
-        // Dump counters
-        self.bencher.probes.borrow().dump_counters(
-            &self.bench_name,
-            self.args.output_csv.as_ref(),
-            self.args.current_invocation,
-            self.args.current_build.as_ref(),
-            std::mem::take(&mut *self.bencher.extra_stats.lock().unwrap()),
-            StatPrintFormat::Yaml,
-        );
         // Destroy probes
         self.bencher.probes.borrow_mut().deinit();
         Ok(())

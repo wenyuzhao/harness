@@ -43,21 +43,17 @@ impl Probe for PerfEventProbe {
     }
 
     /// Prepare recording at the start of the timing iteration.
-    fn begin(&mut self, _benchmark: &str, _iteration: usize, warmup: bool) {
-        if !warmup {
-            for e in &mut self.events {
-                e.reset().expect("Failed to reset perf event");
-                e.enable().expect("Failed to enable perf event");
-            }
+    fn begin(&mut self, _benchmark: &str, _iteration: usize, _warmup: bool) {
+        for e in &mut self.events {
+            e.reset().expect("Failed to reset perf event");
+            e.enable().expect("Failed to enable perf event");
         }
     }
 
     /// Finish timing iteration. Disable recording.
-    fn end(&mut self, _benchmark: &str, _iteration: usize, warmup: bool) {
-        if !warmup {
-            for e in &mut self.events {
-                e.disable().expect("Failed to disable perf event");
-            }
+    fn end(&mut self, _benchmark: &str, _iteration: usize, _warmup: bool) {
+        for e in &mut self.events {
+            e.disable().expect("Failed to disable perf event");
         }
     }
 

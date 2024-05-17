@@ -208,10 +208,11 @@ impl ProbeManager {
         invocation: Option<usize>,
         build: Option<&String>,
         stats: &[(String, Box<dyn Value>)],
+        iteration: usize,
     ) {
         if let Some(csv) = csv {
             if !csv.exists() {
-                let mut headers = "bench,build,invocation".to_owned();
+                let mut headers = "bench,build,invocation,iteration".to_owned();
                 for (name, _value) in stats {
                     headers += ",";
                     headers += name;
@@ -219,7 +220,13 @@ impl ProbeManager {
                 headers += "\n";
                 std::fs::write(csv, headers).unwrap();
             }
-            let mut record = format!("{},{},{}", name, build.unwrap(), invocation.unwrap_or(0));
+            let mut record = format!(
+                "{},{},{},{}",
+                name,
+                build.unwrap(),
+                invocation.unwrap_or(0),
+                iteration
+            );
             for (_, value) in stats {
                 record += &format!(",{}", value.to_string());
             }
@@ -236,6 +243,8 @@ impl ProbeManager {
         build: Option<&String>,
         extra_stats: Vec<(String, Box<dyn Value>)>,
         format: StatPrintFormat,
+        iteration: usize,
+        is_timing_iteration: bool,
     ) {
         // Collect all stats
         let mut stats_map: HashMap<String, Box<dyn Value>> = HashMap::new();
@@ -252,17 +261,19 @@ impl ProbeManager {
         }
         stats.sort_by_key(|x| x.0.clone());
         stats.insert(0, ("time".to_owned(), time));
-        // Print to the log file
-        let banner_start = std::env::var("HARNESS_LOG_STAT_BANNER_START").unwrap_or_else(|_| {
-            "============================ Harness Statistics Totals ============================".to_string()
-        });
-        eprintln!("{banner_start}");
-        self.dump_counters_stderr(&stats, format);
-        let banner_end = std::env::var("HARNESS_LOG_STAT_BANNER_END").unwrap_or_else(|_| {
-            "------------------------------ End Harness Statistics -----------------------------".to_string()
-        });
-        eprintln!("{banner_end}");
+        if is_timing_iteration {
+            // Print to the log file
+            let banner_start = std::env::var("HARNESS_LOG_STAT_BANNER_START").unwrap_or_else(|_| {
+                "============================ Harness Statistics Totals ============================".to_string()
+            });
+            eprintln!("{banner_start}");
+            self.dump_counters_stderr(&stats, format);
+            let banner_end = std::env::var("HARNESS_LOG_STAT_BANNER_END").unwrap_or_else(|_| {
+                "------------------------------ End Harness Statistics -----------------------------".to_string()
+            });
+            eprintln!("{banner_end}");
+        }
         // Print to the CSV file
-        self.dump_counters_csv(name, csv, invocation, build, &stats);
+        self.dump_counters_csv(name, csv, invocation, build, &stats, iteration);
     }
 }
