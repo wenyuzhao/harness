@@ -5,9 +5,12 @@ use std::{
     time::{Duration, Instant},
 };
 
-use clap::{Parser, ValueEnum};
+use clap::Parser;
 
-use crate::probe::ProbeManager;
+use crate::{
+    probe::ProbeManager,
+    record::{Record, StatPrintFormat},
+};
 
 #[derive(Parser, Debug)]
 pub struct BenchArgs {
@@ -39,13 +42,6 @@ pub struct BenchArgs {
     #[doc(hidden)]
     /// Specify current build name
     pub current_build: Option<String>,
-}
-
-#[derive(ValueEnum, Debug, Clone, Copy, PartialEq, Eq)]
-#[clap(rename_all = "kebab_case")]
-pub(crate) enum StatPrintFormat {
-    Table,
-    Yaml,
 }
 
 pub trait Value: ToString + 'static {}
@@ -285,16 +281,24 @@ impl SingleBenchmarkRunner {
     }
 
     fn dump_counters(&self, iteration: usize, is_timing_iteration: bool) {
-        self.bencher.probes.borrow().dump_counters(
-            &self.bench_name,
-            self.args.output_csv.as_ref(),
-            self.args.current_invocation,
-            self.args.current_build.as_ref(),
-            std::mem::take(&mut *self.bencher.extra_stats.lock().unwrap()),
-            StatPrintFormat::Yaml,
+        let probe_stats = self
+            .bencher
+            .probes
+            .borrow()
+            .get_counter_values(std::mem::take(
+                &mut *self.bencher.extra_stats.lock().unwrap(),
+            ));
+        let record = Record {
+            name: &self.bench_name,
+            csv: self.args.output_csv.as_ref(),
+            invocation: self.args.current_invocation,
+            build: self.args.current_build.as_ref(),
+            format: StatPrintFormat::Yaml,
             iteration,
             is_timing_iteration,
-        );
+            stats: probe_stats,
+        };
+        record.dump_values();
     }
 
     fn run_once_impl(&mut self, iteration: usize) -> f32 {

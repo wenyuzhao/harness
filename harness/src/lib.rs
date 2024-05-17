@@ -1,5 +1,6 @@
 mod bencher;
 pub mod probe;
+mod record;
 pub mod utils;
 
 pub use bencher::{BenchTimer, Bencher, Value};
