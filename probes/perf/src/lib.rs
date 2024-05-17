@@ -1,9 +1,11 @@
 #[cfg(target_os = "linux")]
 use std::collections::HashMap;
 
+use harness::probe::Probe;
 #[cfg(target_os = "linux")]
 use harness::probe::ProbeArgs;
-use harness::{probe::Probe, Value};
+#[cfg(target_os = "linux")]
+use harness::Value;
 
 #[harness::probe]
 #[derive(Default)]
