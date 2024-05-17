@@ -12,7 +12,7 @@ use crate::{
     utils::{self, git::TempGitCommitGuard},
 };
 
-use super::report::ReportArgs;
+use super::upload::UploadResultsArgs;
 
 mod checks;
 pub(crate) mod runner;
@@ -48,9 +48,9 @@ pub struct RunArgs {
     /// If not specified, a temporary default build config will be created and used.
     #[arg(long)]
     pub build: Option<String>,
-    /// Report the benchmark results after running
+    /// Upload the benchmark results to https://reports.harness.rs after the run.
     #[arg(long, default_value = "false")]
-    pub report: bool,
+    pub upload: bool,
 }
 
 impl RunArgs {
@@ -103,7 +103,7 @@ impl RunArgs {
         crate_info: CrateInfo,
         mut profile: Profile,
         old_run: Option<&RunInfo>,
-    ) -> anyhow::Result<()> {
+    ) -> anyhow::Result<String> {
         // Overwrite invocations and iterations
         if let Some(invocations) = self.invocations {
             profile.invocations = invocations;
@@ -142,7 +142,7 @@ impl RunArgs {
         let mut runner = runner::BenchRunner::new(&run_info);
         runner.run(&log_dir)?;
         self.update_metadata_on_finish(&log_dir, run_info)?;
-        Ok(())
+        Ok(runid)
     }
 
     fn prepare_reproduced_run(
@@ -240,14 +240,11 @@ impl RunArgs {
             };
             (profile, None, None)
         };
-        let baseline = profile.baseline.clone();
-        self.run_benchmarks(crate_info, profile, old_run.as_ref())?;
+        let runid = self.run_benchmarks(crate_info, profile, old_run.as_ref())?;
         // Report
-        if self.report {
-            let report = ReportArgs {
-                run_id: None,
-                norm: baseline.is_some(),
-                baseline,
+        if self.upload {
+            let report = UploadResultsArgs {
+                run_id: Some(runid),
             };
             println!();
             report.run()?;

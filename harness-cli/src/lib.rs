@@ -17,7 +17,7 @@ pub struct Cli {
 #[derive(Subcommand)]
 enum Commands {
     Run(commands::run::RunArgs),
-    Report(commands::report::ReportArgs),
+    Upload(commands::upload::UploadResultsArgs),
 }
 
 /// Plot benchmark results
@@ -55,7 +55,7 @@ pub fn entey(args: &Cli) -> anyhow::Result<()> {
     let git = git_info2::get();
     let run_result = match &args.command {
         Commands::Run(cmd) => cmd.run(),
-        Commands::Report(cmd) => cmd.run(),
+        Commands::Upload(cmd) => cmd.run(),
     };
     if let Err(err) = run_result.as_ref() {
         eprintln!("❌ {}: {}", "ERROR".red().bold(), err.to_string().red());

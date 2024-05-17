@@ -98,15 +98,6 @@ impl<'a> PreBenchmarkingChecker<'a> {
                 }
             }
         }
-        // baseline correct?
-        if let Some(baseline) = &self.run.profile.baseline {
-            if !self.run.profile.builds.contains_key(baseline) {
-                anyhow::bail!(
-                    "Baseline `{}` is not an existing build name.",
-                    baseline.italic(),
-                );
-            }
-        }
         Ok(())
     }
 

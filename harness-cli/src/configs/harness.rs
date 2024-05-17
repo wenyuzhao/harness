@@ -181,8 +181,6 @@ pub struct Profile {
     /// Number of invocations. Default is 10
     #[serde(default = "default_invocations")]
     pub invocations: usize,
-    /// The baseline build name. This is only used for data reporting.
-    pub baseline: Option<String>,
 }
 
 impl Default for Profile {
@@ -193,7 +191,6 @@ impl Default for Profile {
             builds: HashMap::new(),
             iterations: default_iterations(),
             invocations: default_invocations(),
-            baseline: None,
         }
     }
 }
