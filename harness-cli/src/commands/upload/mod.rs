@@ -46,11 +46,9 @@ impl UploadResultsArgs {
             .file("files", results_csv)?
             .file("files", config_toml)?;
         let response = client
-            .post(format!("{DOMAIN}/api/v1/upload-results"))
-            .header(reqwest::header::CONTENT_TYPE, "application/json")
+            .put(format!("{DOMAIN}/api/v1/upload-results"))
             .multipart(form)
-            .send()
-            .unwrap();
+            .send()?;
         let status = response.status();
         let Ok(res) = response.json::<Map<String, Value>>() else {
             anyhow::bail!("Failed to parse response");
@@ -61,7 +59,7 @@ impl UploadResultsArgs {
                 .map(|e| e.as_str())
                 .flatten()
                 .unwrap_or("Unknown error");
-            anyhow::bail!("Failed to upload results: {} {}", status, msg);
+            anyhow::bail!("Failed to upload results: {} ({})", status, msg);
         }
         let Some(hash) = res.get("hash").map(|h| h.as_str()).flatten() else {
             anyhow::bail!("No upload hash returned");
