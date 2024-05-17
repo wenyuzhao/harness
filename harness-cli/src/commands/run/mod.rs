@@ -103,6 +103,7 @@ impl RunArgs {
         crate_info: CrateInfo,
         mut profile: Profile,
         profile_name: String,
+        project: Option<String>,
         old_run: Option<&RunInfo>,
     ) -> anyhow::Result<String> {
         // Overwrite invocations and iterations
@@ -133,7 +134,14 @@ impl RunArgs {
         };
         // Create a new run
         let (runid, start_time) = self.generate_runid();
-        let run_info = RunInfo::new(crate_info, profile, runid.clone(), profile_name, start_time)?;
+        let run_info = RunInfo::new_v0(
+            crate_info,
+            profile,
+            runid.clone(),
+            profile_name,
+            project,
+            start_time,
+        )?;
         // Run checks
         checks::run_all_checks(self, &run_info, old_run)?;
         // Initialize logs dir
@@ -217,11 +225,12 @@ impl RunArgs {
             self.build.as_ref().unwrap()
         };
         let (runid, start_time) = self.generate_runid();
-        let run_info = RunInfo::new(
+        let run_info = RunInfo::new_v0(
             crate_info.clone(),
             profile,
             runid.clone(),
             "@test".to_owned(),
+            config.project.clone(),
             start_time,
         )?;
         let runner = runner::BenchRunner::new(&run_info);
@@ -231,14 +240,16 @@ impl RunArgs {
 
     pub fn run(&self) -> anyhow::Result<()> {
         let crate_info = CrateInfo::load()?;
+
         if self.bench.is_some() {
             return self.test_run(&crate_info);
         }
-        let (profile, profile_name, old_run, _guard) = if self.config.is_some() {
+        let (project, profile, profile_name, old_run, _guard) = if self.config.is_some() {
             // Reproduce a previous run
             let (old_run, guard) = self.prepare_reproduced_run(&crate_info)?;
             let profile = old_run.profile.clone();
             (
+                Some(old_run.project.clone()),
                 profile,
                 old_run.profile.name.clone(),
                 Some(old_run),
@@ -250,9 +261,16 @@ impl RunArgs {
             let Some(profile) = config.profiles.get(&self.profile).cloned() else {
                 anyhow::bail!("Could not find harness profile `{}`", self.profile);
             };
-            (profile, self.profile.clone(), None, None)
+            (
+                config.project.clone(),
+                profile,
+                self.profile.clone(),
+                None,
+                None,
+            )
         };
-        let runid = self.run_benchmarks(crate_info, profile, profile_name, old_run.as_ref())?;
+        let runid =
+            self.run_benchmarks(crate_info, profile, profile_name, project, old_run.as_ref())?;
         // Report
         if self.upload {
             let report = UploadResultsArgs {

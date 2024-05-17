@@ -115,6 +115,8 @@ struct CargoConfigPackageMetadata {
 ///
 #[derive(Serialize, Deserialize, Debug)]
 pub struct HarnessConfig {
+    /// Custom project name. Default to the crate name.
+    pub project: Option<String>,
     /// Evaluation profiles
     pub profiles: HashMap<String, Profile>,
 }
@@ -144,6 +146,7 @@ impl HarnessConfig {
 impl Default for HarnessConfig {
     fn default() -> Self {
         Self {
+            project: None,
             profiles: [("default".to_owned(), Default::default())]
                 .into_iter()
                 .collect(),

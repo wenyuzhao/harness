@@ -45,8 +45,12 @@ impl Deref for ProfileWithName {
 /// The evaluation run metadata. This will be collected before each evaluation and dumped to the log directory.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct RunInfo {
+    /// Version
+    pub version: i32,
     /// Benchmark run id
     pub runid: String,
+    /// Profile name (default to the crate name)
+    pub project: String,
     /// Benchmark start time
     #[serde(rename = "start-time-utc")]
     pub start_timestamp_utc: i64,
@@ -67,16 +71,20 @@ pub struct RunInfo {
 }
 
 impl RunInfo {
-    pub(crate) fn new(
+    pub(crate) fn new_v0(
         crate_info: CrateInfo,
         profile: Profile,
         runid: String,
         profile_name: String,
+        project: Option<String>,
         start_time: DateTime<Local>,
     ) -> anyhow::Result<Self> {
         let lockfiles = load_lockfiles(&crate_info, &profile)?;
+        let project = project.unwrap_or_else(|| crate_info.name.clone());
         Ok(Self {
+            version: 0,
             crate_info,
+            project,
             system: utils::sys::get_current_system_info(),
             profile: ProfileWithName {
                 name: profile_name,
