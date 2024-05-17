@@ -275,6 +275,7 @@ impl RunArgs {
         if self.upload {
             let report = UploadResultsArgs {
                 run_id: Some(runid),
+                remote: None,
             };
             println!();
             report.run()?;

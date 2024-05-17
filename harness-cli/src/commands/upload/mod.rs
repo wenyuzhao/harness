@@ -6,14 +6,15 @@ use serde_json::{Map, Value};
 
 use crate::configs::run_info::{CrateInfo, RunInfo};
 
-/// Upload benchmark results to https://reports.harness.rs
+/// Upload benchmark results to https://r.harness.rs
 #[derive(Parser)]
 pub struct UploadResultsArgs {
     /// The run id to report. Default to the latest run.
     pub run_id: Option<String>,
+    /// Host url of the harness server. Default to https://r.harness.rs
+    #[clap(long)]
+    pub remote: Option<String>,
 }
-
-const DOMAIN: &str = "http://localhost:8501";
 
 impl UploadResultsArgs {
     fn find_log_dir(&self, target_dir: PathBuf) -> anyhow::Result<PathBuf> {
@@ -30,6 +31,11 @@ impl UploadResultsArgs {
     }
 
     pub fn run(&self) -> anyhow::Result<()> {
+        let mut remote_url =
+            url::Url::parse(self.remote.as_deref().unwrap_or("https://r.harness.rs"))?;
+        if remote_url.scheme() != "https" && remote_url.scheme() != "http" {
+            anyhow::bail!("Invalid URL: {}", remote_url);
+        }
         let target_dir = CrateInfo::get_target_path()?;
         let log_dir = self.find_log_dir(target_dir)?;
         let results_csv = log_dir.join("results.csv");
@@ -50,7 +56,7 @@ impl UploadResultsArgs {
             .file("files", results_csv)?
             .file("files", config_toml)?;
         let response = client
-            .put(format!("{DOMAIN}/api/v1/upload-results"))
+            .put(format!("{remote_url}api/v1/upload-results"))
             .multipart(form)
             .send()?;
         let status = response.status();
@@ -67,10 +73,11 @@ impl UploadResultsArgs {
         let Some(hash) = res.get("hash").and_then(|h| h.as_str()) else {
             anyhow::bail!("No upload hash returned");
         };
+        remote_url.set_query(Some(format!("id={hash}").as_str()));
         if status.as_u16() != 201 {
-            anyhow::bail!("Results already uploaded: {DOMAIN}/r/{hash}");
+            anyhow::bail!("Results already uploaded: {remote_url}");
         }
-        println!("Results uploaded: {DOMAIN}/r/{hash}");
+        println!("Results uploaded: {remote_url}");
         println!("Please claim the results by visiting the link above. Failure to claim the results within 7 days will result in automatic deletion.");
         Ok(())
     }
