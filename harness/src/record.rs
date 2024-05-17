@@ -20,28 +20,28 @@ pub(crate) struct Record<'a> {
     pub format: StatPrintFormat,
     pub iteration: usize,
     pub is_timing_iteration: bool,
-    pub stats: HashMap<String, Box<dyn Value>>,
+    pub stats: HashMap<String, Value>,
 }
 
 impl<'a> Record<'a> {
-    fn dump_counters_stderr_table(&self, stats: &[(String, Box<dyn Value>)]) {
+    fn dump_counters_stderr_table(&self, stats: &[(String, Value)]) {
         for (name, _) in stats {
             eprint!("{}\t", name);
         }
         eprintln!();
         for (_, value) in stats {
-            eprint!("{}\t", value.to_string());
+            eprint!("{}\t", value.into_string());
         }
         eprintln!();
     }
 
-    fn dump_counters_stderr_yaml(&self, stats: &[(String, Box<dyn Value>)]) {
+    fn dump_counters_stderr_yaml(&self, stats: &[(String, Value)]) {
         for (name, value) in stats {
-            eprintln!("{}: {}", name, value.to_string());
+            eprintln!("{}: {}", name, value.into_string());
         }
     }
 
-    fn dump_counters_stderr(&self, stats: &[(String, Box<dyn Value>)], format: StatPrintFormat) {
+    fn dump_counters_stderr(&self, stats: &[(String, Value)], format: StatPrintFormat) {
         let force_table = std::env::var("HARNESS_LOG_STAT_FORMAT") == Ok("table".to_owned());
         if force_table {
             return self.dump_counters_stderr_table(stats);
@@ -52,7 +52,7 @@ impl<'a> Record<'a> {
         }
     }
 
-    fn dump_counters_csv(&self, stats: &[(String, Box<dyn Value>)]) {
+    fn dump_counters_csv(&self, stats: &[(String, Value)]) {
         if let Some(csv) = self.csv {
             if !csv.exists() {
                 let mut headers = "bench,build,invocation,iteration".to_owned();
@@ -71,7 +71,7 @@ impl<'a> Record<'a> {
                 self.iteration
             );
             for (_, value) in stats {
-                record += &format!(",{}", value.to_string());
+                record += &format!(",{}", value.into_string());
             }
             let mut csv = OpenOptions::new().append(true).open(csv).unwrap();
             writeln!(csv, "{record}").unwrap();
@@ -81,7 +81,7 @@ impl<'a> Record<'a> {
     pub fn dump_values(mut self) {
         let mut stats_map = std::mem::take(&mut self.stats);
         let time = stats_map.remove("time");
-        let mut stats: Vec<(String, Box<dyn Value>)> = vec![];
+        let mut stats: Vec<(String, Value)> = vec![];
         for (name, value) in stats_map {
             stats.push((name.clone(), value));
         }

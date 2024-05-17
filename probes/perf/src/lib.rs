@@ -1,9 +1,9 @@
 #[cfg(target_os = "linux")]
 use std::collections::HashMap;
 
-use harness::probe::Probe;
 #[cfg(target_os = "linux")]
 use harness::probe::ProbeArgs;
+use harness::{probe::Probe, Value};
 
 #[harness::probe]
 #[derive(Default)]
@@ -58,11 +58,11 @@ impl Probe for PerfEventProbe {
     }
 
     /// Report data after the timing iteration.
-    fn report(&mut self) -> HashMap<String, f32> {
+    fn report(&mut self) -> HashMap<String, Value> {
         let mut values = HashMap::new();
         for (i, e) in self.events.iter().enumerate() {
             let v = e.read().unwrap().value as f32;
-            values.insert(self.event_names[i].clone(), v);
+            values.insert(self.event_names[i].clone(), v.into());
         }
         values
     }

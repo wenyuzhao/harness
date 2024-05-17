@@ -1,3 +1,5 @@
+use std::convert::TryFrom;
+use std::fmt;
 use std::{
     cell::RefCell,
     path::PathBuf,
@@ -44,23 +46,83 @@ pub struct BenchArgs {
     pub current_build: Option<String>,
 }
 
-pub trait Value: ToString + 'static {}
+#[derive(Debug, Clone, Copy)]
+pub enum Value {
+    F64(f64),
+    F32(f32),
+    Usize(usize),
+    Isize(isize),
+    U64(u64),
+    I64(i64),
+    U32(u32),
+    I32(i32),
+    U16(u16),
+    I16(i16),
+    U8(u8),
+    I8(i8),
+    Bool(bool),
+}
 
-impl Value for f64 {}
-impl Value for f32 {}
-impl Value for usize {}
-impl Value for isize {}
-impl Value for u128 {}
-impl Value for i128 {}
-impl Value for u64 {}
-impl Value for i64 {}
-impl Value for u32 {}
-impl Value for i32 {}
-impl Value for u16 {}
-impl Value for i16 {}
-impl Value for u8 {}
-impl Value for i8 {}
-impl Value for bool {}
+impl Value {
+    pub(crate) fn into_string(self) -> String {
+        match self {
+            Value::F64(v) => v.to_string(),
+            Value::F32(v) => v.to_string(),
+            Value::Usize(v) => v.to_string(),
+            Value::Isize(v) => v.to_string(),
+            Value::U64(v) => v.to_string(),
+            Value::I64(v) => v.to_string(),
+            Value::U32(v) => v.to_string(),
+            Value::I32(v) => v.to_string(),
+            Value::U16(v) => v.to_string(),
+            Value::I16(v) => v.to_string(),
+            Value::U8(v) => v.to_string(),
+            Value::I8(v) => v.to_string(),
+            Value::Bool(v) => v.to_string(),
+        }
+    }
+}
+
+macro_rules! impl_helper_traits {
+    ($variant: ident, $t:ty) => {
+        impl From<$t> for Value {
+            fn from(v: $t) -> Self {
+                Value::$variant(v)
+            }
+        }
+
+        impl TryFrom<Value> for $t {
+            type Error = ();
+
+            fn try_from(v: Value) -> Result<Self, Self::Error> {
+                match v {
+                    Value::$variant(v) => Ok(v),
+                    _ => Err(()),
+                }
+            }
+        }
+    };
+}
+
+impl_helper_traits!(F64, f64);
+impl_helper_traits!(F32, f32);
+impl_helper_traits!(Usize, usize);
+impl_helper_traits!(Isize, isize);
+impl_helper_traits!(U64, u64);
+impl_helper_traits!(I64, i64);
+impl_helper_traits!(U32, u32);
+impl_helper_traits!(I32, i32);
+impl_helper_traits!(U16, u16);
+impl_helper_traits!(I16, i16);
+impl_helper_traits!(U8, u8);
+impl_helper_traits!(I8, i8);
+impl_helper_traits!(Bool, bool);
+
+impl fmt::Display for Value {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.into_string())
+    }
+}
 
 pub struct BenchTimer<'a> {
     start_time: std::time::Instant,
@@ -96,7 +158,7 @@ pub struct Bencher {
     max_iterations: usize,
     elapsed: Mutex<Option<Duration>>,
     probes: RefCell<ProbeManager>,
-    extra_stats: Mutex<Vec<(String, Box<dyn Value>)>>,
+    extra_stats: Mutex<Vec<(String, Value)>>,
     state: Mutex<BencherState>,
 }
 
@@ -226,11 +288,11 @@ impl Bencher {
     ///
     /// Please ensure you are collecting the statistics in a cheap way during the timing phase,
     /// and call this function only after the timing phase.
-    pub fn add_stat(&self, name: impl AsRef<str>, value: impl Value) {
+    pub fn add_stat(&self, name: impl AsRef<str>, value: impl Into<Value>) {
         self.extra_stats
             .lock()
             .unwrap()
-            .push((name.as_ref().to_owned(), Box::new(value)));
+            .push((name.as_ref().to_owned(), value.into()));
     }
 
     /// Returns the wall-clock time of the last timing phase.
@@ -239,8 +301,8 @@ impl Bencher {
         *self.elapsed.lock().unwrap()
     }
 
-    /// Returns the value of a counter as a floating point number.
-    pub fn get_raw_counter_value(&self, name: impl AsRef<str>) -> Option<f32> {
+    /// Returns the value of a counter.
+    pub fn get_raw_counter_value(&self, name: impl AsRef<str>) -> Option<Value> {
         self.probes.borrow().get_value(name.as_ref())
     }
 }

@@ -7,17 +7,20 @@ use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use crate::bencher::Value;
 
 struct Counters {
-    counters: Vec<(String, f32)>,
+    counters: Vec<(String, Value)>,
 }
 
 impl Counters {
     pub(crate) fn new(walltime: Duration) -> Self {
         Self {
-            counters: vec![("time".to_owned(), walltime.as_micros() as f32 / 1000.0)],
+            counters: vec![(
+                "time".to_owned(),
+                (walltime.as_micros() as f32 / 1000.0).into(),
+            )],
         }
     }
 
-    fn merge(&mut self, values: HashMap<String, f32>) {
+    fn merge(&mut self, values: HashMap<String, Value>) {
         let mut values = values.iter().collect::<Vec<_>>();
         values.sort_by_key(|x| x.0.as_str());
         for (k, v) in values {
@@ -25,7 +28,7 @@ impl Counters {
         }
     }
 
-    fn get_value(&self, name: &str) -> Option<f32> {
+    fn get_value(&self, name: &str) -> Option<Value> {
         self.counters
             .iter()
             .find(|(k, _)| k == name)
@@ -57,7 +60,7 @@ pub trait Probe {
 
     fn end(&mut self, benchmark: &str, iteration: usize, warmup: bool) {}
 
-    fn report(&mut self) -> HashMap<String, f32> {
+    fn report(&mut self) -> HashMap<String, Value> {
         HashMap::new()
     }
 
@@ -79,9 +82,12 @@ impl Probe for BaseProbe {
         self.elapsed = self.start.unwrap().elapsed();
     }
 
-    fn report(&mut self) -> HashMap<String, f32> {
+    fn report(&mut self) -> HashMap<String, Value> {
         let mut values = HashMap::new();
-        values.insert("time".to_owned(), self.elapsed.as_micros() as f32 / 1000.0);
+        values.insert(
+            "time".to_owned(),
+            (self.elapsed.as_micros() as f32 / 1000.0).into(),
+        );
         values
     }
 }
@@ -168,20 +174,17 @@ impl ProbeManager {
         self.counters = counters;
     }
 
-    pub(crate) fn get_value(&self, name: &str) -> Option<f32> {
+    pub(crate) fn get_value(&self, name: &str) -> Option<Value> {
         self.counters.get_value(name)
     }
 
-    pub(crate) fn get_counter_values(
-        &self,
-        extra_stats: Vec<(String, Box<dyn Value>)>,
-    ) -> HashMap<String, Box<dyn Value>> {
+    pub(crate) fn get_counter_values(&self, extra: Vec<(String, Value)>) -> HashMap<String, Value> {
         // Collect all stats
-        let mut stats_map: HashMap<String, Box<dyn Value>> = HashMap::new();
+        let mut stats_map: HashMap<String, Value> = HashMap::new();
         for (name, value) in &self.counters.counters {
-            stats_map.insert(name.clone(), Box::new(*value));
+            stats_map.insert(name.clone(), *value);
         }
-        for (name, value) in extra_stats {
+        for (name, value) in extra {
             stats_map.insert(name.clone(), value);
         }
         stats_map
