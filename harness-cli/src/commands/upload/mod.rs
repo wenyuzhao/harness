@@ -56,12 +56,11 @@ impl UploadResultsArgs {
         if !status.is_success() {
             let msg = res
                 .get("error")
-                .map(|e| e.as_str())
-                .flatten()
+                .and_then(|e| e.as_str())
                 .unwrap_or("Unknown error");
             anyhow::bail!("Failed to upload results: {} ({})", status, msg);
         }
-        let Some(hash) = res.get("hash").map(|h| h.as_str()).flatten() else {
+        let Some(hash) = res.get("hash").and_then(|h| h.as_str()) else {
             anyhow::bail!("No upload hash returned");
         };
         if status.as_u16() != 201 {

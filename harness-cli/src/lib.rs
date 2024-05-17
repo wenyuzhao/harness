@@ -18,6 +18,7 @@ pub struct Cli {
 enum Commands {
     Run(commands::run::RunArgs),
     Upload(commands::upload::UploadResultsArgs),
+    Viz(commands::viz::VizArgs),
 }
 
 /// Plot benchmark results
@@ -56,6 +57,7 @@ pub fn entey(args: &Cli) -> anyhow::Result<()> {
     let run_result = match &args.command {
         Commands::Run(cmd) => cmd.run(),
         Commands::Upload(cmd) => cmd.run(),
+        Commands::Viz(cmd) => cmd.run(),
     };
     if let Err(err) = run_result.as_ref() {
         eprintln!("❌ {}: {}", "ERROR".red().bold(), err.to_string().red());
