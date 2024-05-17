@@ -16,8 +16,8 @@ pub struct UploadResultsArgs {
 const DOMAIN: &str = "http://localhost:8501";
 
 impl UploadResultsArgs {
-    fn find_log_dir(&self, crate_info: &CrateInfo) -> anyhow::Result<PathBuf> {
-        let logs_dir = crate_info.target_dir.join("harness").join("logs");
+    fn find_log_dir(&self, target_dir: PathBuf) -> anyhow::Result<PathBuf> {
+        let logs_dir = target_dir.join("harness").join("logs");
         let log_dir = if let Some(run_id) = &self.run_id {
             logs_dir.join(run_id)
         } else {
@@ -30,8 +30,8 @@ impl UploadResultsArgs {
     }
 
     pub fn run(&self) -> anyhow::Result<()> {
-        let crate_info = CrateInfo::load()?;
-        let log_dir = self.find_log_dir(&crate_info)?;
+        let target_dir = CrateInfo::get_target_path()?;
+        let log_dir = self.find_log_dir(target_dir)?;
         let results_csv = log_dir.join("results.csv");
         let config_toml = log_dir.join("config.toml");
         if !results_csv.exists() {

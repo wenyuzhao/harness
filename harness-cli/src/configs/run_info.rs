@@ -118,6 +118,14 @@ pub struct CrateInfo {
 }
 
 impl CrateInfo {
+    pub(crate) fn get_target_path() -> anyhow::Result<PathBuf> {
+        let Ok(meta) = MetadataCommand::new().manifest_path("./Cargo.toml").exec() else {
+            anyhow::bail!("Failed to get metadata from ./Cargo.toml");
+        };
+        let target_dir = meta.target_directory.as_std_path();
+        Ok(target_dir.to_owned())
+    }
+
     pub(crate) fn load() -> anyhow::Result<Self> {
         let Ok(meta) = MetadataCommand::new().manifest_path("./Cargo.toml").exec() else {
             anyhow::bail!("Failed to get metadata from ./Cargo.toml");
