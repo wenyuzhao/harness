@@ -1,10 +1,14 @@
 use std::path::PathBuf;
 
 use clap::Parser;
+use colored::Colorize;
 use reqwest::blocking::Client;
 use serde_json::{Map, Value};
 
-use crate::configs::run_info::{CrateInfo, RunInfo};
+use crate::{
+    configs::run_info::{CrateInfo, RunInfo},
+    print_md,
+};
 
 /// Upload benchmark results to https://r.harness.rs
 #[derive(Parser)]
@@ -77,8 +81,9 @@ impl UploadResultsArgs {
         if status.as_u16() != 201 {
             anyhow::bail!("Results already uploaded: {remote_url}");
         }
-        println!("Results uploaded: {remote_url}");
-        println!("Please claim the results by visiting the link above. Failure to claim the results within 7 days will result in automatic deletion.");
+        print!("{}", "✔ Benchmark results uploaded: ".green());
+        print_md!("`{remote_url}`\n");
+        print_md!("Please claim the results by visiting the link above. Failure to claim the results within 7 days will result in automatic deletion.\n");
         Ok(())
     }
 }

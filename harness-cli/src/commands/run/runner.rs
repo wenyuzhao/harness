@@ -272,7 +272,6 @@ impl<'a> BenchRunner<'a> {
         let csv_path = self.log_dir.as_ref().unwrap().join("results.csv");
         print_md!("Raw benchmark results at:\n");
         print_md!("* `{}`\n\n", csv_path.display());
-        print_md!("Please run `cargo harness report` to view results.\n");
     }
 
     fn get_inv_label(&self, index: usize, is_row_label: bool) -> String {
