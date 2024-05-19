@@ -44,7 +44,6 @@ git_info2 = "0.1.2"
 sysinfo = "0.29.10"
 once_cell = "1.18.0"
 rustc_version = "0.4.0"
-polars = { version = "0.38.1", features = ["lazy", "product"] }
 termimad = "0.29.1"
 colored = "2.1.0"
 serde_json = "1.0.114"
