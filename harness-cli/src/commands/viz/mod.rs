@@ -27,9 +27,10 @@ impl VizArgs {
                 "vizkit is not installed. Please install it by running: pipx install vizkit"
             );
         }
-        let crate_info = CrateInfo::load()?;
+        let target_dir = CrateInfo::get_target_path()?;
         Command::new("vizkit")
-            .arg(crate_info.workspace_root)
+            .arg(target_dir.parent().unwrap())
+            .arg("--open")
             .spawn()?
             .wait()?;
         Ok(())
