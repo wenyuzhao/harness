@@ -154,6 +154,7 @@ impl RunArgs {
         Ok(runid)
     }
 
+    #[allow(clippy::assigning_clones)]
     fn prepare_reproduced_run(
         &self,
         crate_info: &CrateInfo,

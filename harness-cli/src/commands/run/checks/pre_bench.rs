@@ -51,6 +51,7 @@ impl<'a> PreBenchmarkingChecker<'a> {
         Ok(())
     }
 
+    #[allow(clippy::assigning_clones)]
     fn check_build_configs(&mut self) -> anyhow::Result<()> {
         // No builds or only one build?
         let builds = self.run.profile.builds.len();

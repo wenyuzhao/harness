@@ -14,6 +14,7 @@ fn load_current_lockfile(ws: &Path) -> anyhow::Result<toml::Value> {
     Ok(lockfile)
 }
 
+#[allow(clippy::assigning_clones)]
 pub fn load_lockfiles(crate_info: &CrateInfo, profile: &Profile) -> anyhow::Result<Lockfiles> {
     // Get lockfile for each build
     let mut lockfiles = HashMap::new();
