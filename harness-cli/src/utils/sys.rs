@@ -1,4 +1,4 @@
-use sysinfo::{CpuExt, System, SystemExt};
+use sysinfo::System;
 
 use crate::configs::run_info::SystemInfo;
 
@@ -48,9 +48,7 @@ fn get_rustc_version() -> Option<String> {
 }
 
 pub fn get_current_host() -> String {
-    let mut sys = System::new_all();
-    sys.refresh_all();
-    sys.host_name().unwrap_or_else(|| "<unknown>".to_string())
+    System::host_name().unwrap_or_else(|| "<unknown>".to_string())
 }
 
 pub fn get_current_system_info() -> SystemInfo {
@@ -58,11 +56,11 @@ pub fn get_current_system_info() -> SystemInfo {
     sys.refresh_all();
     const UNKNOWN: &str = "<unknown>";
     SystemInfo {
-        host: sys.host_name().unwrap_or(UNKNOWN.to_string()),
-        os: sys.long_os_version().unwrap_or(UNKNOWN.to_string()),
+        host: System::host_name().unwrap_or(UNKNOWN.to_string()),
+        os: System::long_os_version().unwrap_or(UNKNOWN.to_string()),
         arch: std::env::consts::ARCH.to_string(),
-        kernel: sys.kernel_version().unwrap_or(UNKNOWN.to_string()),
-        cpu_model: sys.global_cpu_info().brand().to_owned(),
+        kernel: System::kernel_version().unwrap_or(UNKNOWN.to_string()),
+        cpu_model: sys.cpus().first().unwrap().brand().to_string(),
         cpu_frequency: sys.cpus().iter().map(|c| c.frequency() as usize).collect(),
         memory_size: sys.total_memory() as usize,
         swap_size: sys.total_swap() as usize,

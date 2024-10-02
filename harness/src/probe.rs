@@ -1,5 +1,5 @@
+use std::collections::HashMap;
 use std::time::Duration;
-use std::{collections::HashMap, time::Instant};
 
 use libloading::{Library, Symbol};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
@@ -65,31 +65,6 @@ pub trait Probe {
     }
 
     fn deinit(&mut self) {}
-}
-
-#[derive(Default)]
-struct BaseProbe {
-    start: Option<std::time::Instant>,
-    elapsed: Duration,
-}
-
-impl Probe for BaseProbe {
-    fn begin(&mut self, _benchmark: &str, _iteration: usize, _warmup: bool) {
-        self.start = Some(Instant::now());
-    }
-
-    fn end(&mut self, _benchmark: &str, _iteration: usize, _warmup: bool) {
-        self.elapsed = self.start.unwrap().elapsed();
-    }
-
-    fn report(&mut self) -> HashMap<String, Value> {
-        let mut values = HashMap::new();
-        values.insert(
-            "time".to_owned(),
-            (self.elapsed.as_micros() as f32 / 1000.0).into(),
-        );
-        values
-    }
 }
 
 pub struct ProbeManager {
