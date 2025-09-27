@@ -240,7 +240,7 @@ impl Bencher {
     ///     assert_eq!(result, LEN * (LEN - 1) / 2)
     /// }
     /// ```
-    pub fn start_timing(&self) -> BenchTimer {
+    pub fn start_timing<'a>(&'a self) -> BenchTimer<'a> {
         {
             let mut state = self.state.lock().unwrap();
             if *state != BencherState::BeforeTiming {

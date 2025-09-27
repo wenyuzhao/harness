@@ -68,6 +68,7 @@ pub trait Probe {
 }
 
 #[derive(Default)]
+#[allow(unused)]
 struct BaseProbe {
     start: Option<std::time::Instant>,
     elapsed: Duration,
