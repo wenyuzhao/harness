@@ -1,0 +1,20 @@
+[package]
+name = "harness-probe-ebpf"
+version = "0.0.1"
+description = "harness probe for eBPF-based performance monitoring"
+repository = "https://github.com/wenyuzhao/harness"
+homepage = "https://github.com/wenyuzhao/harness"
+documentation = "https://docs.rs/harness-probe-ebpf"
+categories = ["development-tools::profiling"]
+keywords = ["benchmark", "performance", "measure", "instrument"]
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+crate-type = ["dylib"]
+
+[dependencies]
+harness = { workspace = true }
